@@ -1,4 +1,5 @@
-cssRoot.setProperty("--scale", `${size / 25}px`);
+cssRoot.style.setProperty("--scale", `${size / 25}px`);
+cssRoot.style.setProperty("--scale-n", size / 100);
 const numInp = pixel * pixel;
 const numHid0 = 10;
 const numHid1 = 10;

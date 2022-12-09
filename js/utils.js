@@ -20,7 +20,7 @@ let windowWidth = window.innerWidth;
 let windowHeight = window.innerHeight;
 let size = windowWidth > windowHeight ? windowHeight : windowWidth;
 size = Math.floor(size / 100);
-size = size > 4 ? size * 50 : size * 70;
+size = size > 4 ? size * 45 : size * 70;
 canvasSize(pixel, pixel); 
 /* ------------------------------------------------------------- */
 
@@ -257,7 +257,7 @@ const createEle = (elementName, className = null, appendParentName = null, inrHt
 }
 
 //use cssRoot.style.setProperty("key", "value");
-const cssRoot = document.querySelector(':root').style;
+const cssRoot = document.querySelector(':root');
 
 // when run this app in mobile is return true
 const isMobile = localStorage.mobile || window.navigator.maxTouchPoints > 1;
