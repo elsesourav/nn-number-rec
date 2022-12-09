@@ -134,6 +134,7 @@ inpNums.forEach((e, i) => {
 clearBtn.addEventListener("click",  () => {
     clearBoard();
     removeClass(inpNums, "on");
+    outputs.innerText = "?";
 });
 trainingBtn.addEventListener("click", () => {
     trainingBtn.classList.toggle("on");

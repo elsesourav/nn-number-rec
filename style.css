@@ -24,6 +24,8 @@ body {
   position: relative;
   width: calc(var(--scale) * 25);
   height: calc(var(--scale) * 25);
+  outline: double 2px #457dff;
+  box-shadow: 0 0 5px #000000;
 }
 canvas {
   position: absolute;
