@@ -22,8 +22,8 @@ body {
 }
 #cvs {
   position: relative;
-  width: calc(var(--scale) * 25);
-  height: calc(var(--scale) * 25);
+  width: calc(var(--scale) * 30);
+  height: calc(var(--scale) * 30);
   outline: double 2px #457dff;
   box-shadow: 0 0 5px #000000;
 }
@@ -150,6 +150,7 @@ main.active #options {
   justify-content: start;
   font-size: calc(var(--scale) * 1.2);
   padding-left: calc(var(--scale) / 2);
+  font-family: arial, sans-serif;
   align-items: center;
   color: #ffffff;
 }
@@ -165,6 +166,7 @@ main.active #options {
 .row span p {
   font-weight: 400;
   font-size: calc(var(--scale) * 1.2);
+  font-family: sans-serif;
   color: #ffffff;
 }
 
