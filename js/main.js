@@ -13,11 +13,11 @@ _min_ = window.innerHeight < 600 ? _min_ * 40 : _min_ * 60;
 cssRoot.style.setProperty("--scale-n", _min_ / 100);
 cssRoot.style.setProperty("--scale", `${_min_ / 28}px`);
 
-cssRoot.style.setProperty("--view-w", `${_min_ * 1.6}px`);
-cssRoot.style.setProperty("--view-h", `${_min_ * 1.3}px`);
+cssRoot.style.setProperty("--view-w", `${_min_ * 1.4}px`);
+cssRoot.style.setProperty("--view-h", `${_min_ * 1.1}px`);
 
 const c = new Canvas(pixel, pixel, ID("cvs"));
-let nn = new NeuralNetwork(numInp, numHid0, numHid1, numOut, 1, 8, _min_ * 1.6, _min_ * 1.3);
+let nn = new NeuralNetwork(numInp, numHid0, numHid1, numOut, 1, 8, _min_ * 1.4, _min_ * 1.1);
 
 const lsd = getDataFromLocalStorage("sb-nn"); // (lsd) local stroage data
 
