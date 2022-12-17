@@ -26,7 +26,7 @@ body {
   position: relative;
   width: calc(var(--view-w));
   height: calc(var(--view-h));
-  margin: calc(var(--scale) * 2);
+  margin-bottom: calc(var(--scale) * 2);
 }
 #vidw-cvs > canvas {
   position: absolute;
@@ -40,7 +40,6 @@ body {
   height: calc(var(--scale) * 30);
   outline: double calc(var(--scale) / 3) #457dff;
   box-shadow: 0 0 calc(var(--scale)) #000000;
-  margin: calc(var(--scale) * 2) 0;
 }
 #cvs > canvas {
   position: absolute;

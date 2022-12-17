@@ -10,7 +10,7 @@ let _min_ = Math.floor(minSize / 100);
 _min_ = window.innerHeight < 600 ? _min_ * 40 : _min_ * 60;
 
 
-cssRoot.style.setProperty("--scale-n", _min_ / 110);
+cssRoot.style.setProperty("--scale-n", _min_ / 120);
 cssRoot.style.setProperty("--scale", `${_min_ / 30}px`);
 
 cssRoot.style.setProperty("--view-w", `${_min_ * 1.4}px`);
