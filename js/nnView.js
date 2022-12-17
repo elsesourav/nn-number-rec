@@ -18,8 +18,8 @@ class NNView {
         this.r = this.sclH / 3;
         this.numCol = 17;
 
-        this.runTime = this.fps * 3;
-        this.f = 20;
+        this.runTime = this.f * 3;
+        this.f = 10;
 
         this.setInps();
         this.setHids0();
