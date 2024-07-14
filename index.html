@@ -1,64 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Number Recognise NN</title>
-    <link rel="stylesheet" href="style.css" />
+   <head>
+      <meta charset="UTF-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Number Recognize NN</title>
+      <link rel="stylesheet" href="style.css" />
 
-    <script defer src="./js/matrix.js"></script>
-    <script defer src="./js/neural_network.js"></script>
-    <script defer src="./js/utils.js"></script>
-    <script defer src="./js/need.js"></script>
-    <script defer src="./js/nnView.js"></script>
-    <script defer src="./js/main.js"></script>
-    <script defer src="./js/event.js"></script>
-  </head>
-  <body>
-    <main>
-      <div id="menu-icon">
-        <span></span>
-        <span></span>
-        <span></span>
+      <script defer src="./js/matrix.js"></script>
+      <script defer src="./js/neural_network.js"></script>
+      <script defer src="./js/utils.js"></script>
+      <script defer src="./js/need.js"></script>
+      <script defer src="./js/nnView.js"></script>
+      <script defer src="./js/main.js"></script>
+      <script defer src="./js/event.js"></script>
+   </head>
+   <body>
+      <main>
+         <div id="menu-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+         </div>
+         <div id="options">
+            <div class="title">MENU</div>
+            <div class="ranges">
+               <div class="row">
+                  <label for="speed">Learning Rate</label>
+                  <input
+                     type="range"
+                     value="8"
+                     id="learn-rate"
+                     max="40"
+                     min="1"
+                  />
+                  <span>
+                     <p id="lr-show">1.00</p>
+                     <b>&nbsp;lr</b>
+                  </span>
+               </div>
+            </div>
+            <div class="buttons">
+               <input type="button" class="btn hover" value="SAVE" id="save" />
+               <input
+                  type="button"
+                  class="btn hover"
+                  value="Restore"
+                  id="restore"
+               />
+               <input
+                  type="button"
+                  class="btn hover"
+                  value="RESET"
+                  id="reset"
+               />
+            </div>
+         </div>
+      </main>
+      <div id="view-cvs"></div>
+      <div id="cvs"></div>
+      <div class="view">
+         <div class="inputs">
+            <button class="btn hover" id="clear">Clear</button>
+            <button class="btn hover" id="training">Training</button>
+         </div>
+         <div id="num-btn">
+            <button class="number btn hover">0</button>
+            <button class="number btn hover">1</button>
+            <button class="number btn hover">2</button>
+            <button class="number btn hover">3</button>
+            <button class="number btn hover">4</button>
+            <button class="number btn hover">5</button>
+            <button class="number btn hover">6</button>
+            <button class="number btn hover">7</button>
+            <button class="number btn hover">8</button>
+            <button class="number btn hover">9</button>
+         </div>
+         <div id="train"><button class="btn train hover">Train</button></div>
       </div>
-      <div id="options">
-        <div class="title">MENU</div>
-        <div class="ranges">
-          <div class="row">
-            <label for="speed">Learning Rate</label>
-            <input type="range" value="8" id="learn-rate" max="40" min="1" />
-            <span><p id="lr-show">1.00</p><b>&nbsp;lr</b></span>
-          </div>
-        </div>
-        <div class="buttons">
-          <input type="button" class="btn hover" value="SAVE" id="save" />
-          <input type="button" class="btn hover" value="......" id="restore" />
-          <input type="button" class="btn hover" value="RESET" id="reste" />
-        </div>
-      </div>
-    </main>
-    <div id="vidw-cvs"></div>
-    <div id="cvs"></div>
-    <div class="view">
-      <!-- <div id="outputs">?</div> -->
-      <div class="inputs">
-        <button class="btn hover" id="clear">Clear</button>
-        <button class="btn hover" id="training">Training</button>
-      </div>
-      <div id="num-btn">
-        <button class="number btn hover">0</button>
-        <button class="number btn hover">1</button>
-        <button class="number btn hover">2</button>
-        <button class="number btn hover">3</button>
-        <button class="number btn hover">4</button>
-        <button class="number btn hover">5</button>
-        <button class="number btn hover">6</button>
-        <button class="number btn hover">7</button>
-        <button class="number btn hover">8</button>
-        <button class="number btn hover">9</button>
-      </div>
-      <div id="train"><button class="btn train hover">Train</button></div>
-    </div>
-  </body>
+   </body>
 </html>

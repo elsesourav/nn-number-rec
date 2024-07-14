@@ -409,101 +409,51 @@ class Animation {
    }
 }
 
-const $ = (element) => {
-   const self = document.querySelectorAll(element);
+const ID = (selector) => {
+   const self = document.getElementById(selector);
+   self.on = (event, fun) => {
+      self.addEventListener(event, fun);
+   };
+   self.click = (fun, once = false) => {
+      self.addEventListener("click", fun, { once });
+   };
+   self.text = (text) => (self.innerText = text);
+   self.html = (html) => (self.innerText = html);
+   return self;
+};
 
-   self.each = (fun) => {
-      self.forEach(fun);
-   }
+const $ = (selector) => {
+   const self = document.querySelector(selector);
+   self.on = (event, fun) => {
+      self.addEventListener(event, fun);
+   };
+   self.click = (fun, once = false) => {
+      self.addEventListener("click", fun, { once });
+   };
+   self.text = (text) => (self.innerText = text);
+   self.html = (html) => (self.innerText = html);
+   return self;
+};
 
+const $$ = (selector) => {
+   const self = document.querySelectorAll(selector);
    self.on = (event, fun) => {
       self.forEach((element) => {
          element.addEventListener(event, fun);
       });
-   }
-
-   self.text = (text) => {
-      self.forEach((element) => {
-         element.innerText = text;
+   };
+   self.click = (fun, once = false) => {
+      self.forEach((element, i) => {
+         element.addEventListener("click", (e) => fun(e, element, i), { once });
       });
-   }
-
-   self.html = (html) => {
+   };
+   self.removeClass = (className) => {
       self.forEach((element) => {
-         element.innerHtml = html;
+         element.classList.remove(className);
       });
-   }
-
-   self.style = (x = {}, y) => {
-      if (!y) {
-         const css = Object.entries(x);
-         self.forEach((element) => {
-            css.forEach(([prorerty, value]) => {
-               element.style[prorerty] = value;
-            });
-         });
-      } else {
-         self.forEach(element => {
-            element.style[x] = y;
-         });
-      }
-   }
-   return self;
-}
-
-const ID = (element) => {
-   const self = document.getElementById(element);
-
-   self.on = (event, fun) => {
-      self.addEventListener(event, fun);
-   }
-
-   self.text = (text) => {
-      self.innerText = text;
-   }
-
-   self.html = (html) => {
-      self.innerHtml = html;
-   }
-
-   self.Style = (x = {}, y) => {
-      if (!y) {
-         const css = Object.entries(x);
-         css.forEach(([prorerty, value]) => {
-            self.style[prorerty] = value;
-         });
-      } else {
-         self.style[x] = y;
-      }
-   }
-   return self;
-};
-
-const Q = (element) => {
-   const self = document.querySelector(element);
-
-   self.on = (event, fun) => {
-      self.addEventListener(event, fun);
-   }
-
-   self.text = (text) => {
-      self.innerText = text;
-   }
-
-   self.html = (html) => {
-      self.innerHtml = html;
-   }
-
-   self.Style = (x = {}, y) => {
-      if (!y) {
-         const css = Object.entries(x);
-         css.forEach(([prorerty, value]) => {
-            self.style[prorerty] = value;
-         });
-      } else {
-         self.style[x] = y;
-      }
-   }
+   };
+   self.each = (fun) => self.forEach(fun);
+   self.map = (fun) => self.map(fun);
    return self;
 };
 

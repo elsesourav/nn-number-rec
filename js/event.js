@@ -1,5 +1,5 @@
-/* ----------- event listiner ----------- */
-const mainDiv = Q("main");
+/* ----------- event listener ----------- */
+const mainDiv = $("main");
 const menuButton = ID("menu-icon");
 const clearBtn = ID("clear");
 const trainingBtn = ID("training");
@@ -8,13 +8,14 @@ const numInpBtn = ID("num-btn");
 const learnRate = ID("learn-rate");
 const lrShow = ID("lr-show");
 const saveBtn = ID("save");
-const resteBtn = ID("reste");
-const hoverClass = $(".hover");
+const resetBtn = ID("reset");
+const hoverClass = $$(".hover");
 
 
 // draw events for mouse and touch
 let offsetX, offsetY, isDraw = false;
 const cvsOffset = c.cvs.getBoundingClientRect();
+
 c.on("click", (e) => {
     offsetX = Math.map(e.clientX, cvsOffset.left, cvsOffset.left + c.cvs.clientWidth, 0, pixel);
     offsetY = Math.map(e.clientY, cvsOffset.top, cvsOffset.top + c.cvs.clientHeight, 0, pixel);
@@ -107,6 +108,6 @@ saveBtn.on("click", () => {
     }
     setDataFromLocalStorage("sb-nn", obj);
 })
-resteBtn.on("click", () => {
+resetBtn.on("click", () => {
     setDataFromLocalStorage("sb-nn", "");
 })

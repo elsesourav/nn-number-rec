@@ -22,7 +22,7 @@ class NeuralNetwork {
         this._weights1 = new Matrix(this._numHid0, this._numHid1);
         this._weights2 = new Matrix(this._numHid1, this._numOut);
 
-        // randomise the initial weights
+        // randomize the initial weights
         this._bias0.randomWeights();
         this._bias1.randomWeights();
         this._bias2.randomWeights();

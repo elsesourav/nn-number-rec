@@ -3,7 +3,7 @@ class NNView {
         this.nn = nn;
         this.width = width;
         this.height = height;
-        this.c = new Canvas(this.width, this.height, ID("vidw-cvs"));
+        this.c = new Canvas(this.width, this.height, ID("view-cvs"));
         this.fps = 60;
         this.ani = new Animation(this.fps);
 
@@ -227,7 +227,7 @@ class NNView {
         for (let i = 0; i < this.nn._numOut; i++) {
 
             this.outs.push({
-                x: this.sclW * 3 + this.r * 2,
+                x: this.sclW * 3 + this.r,
                 y: this.sclH * 1.7 * i + this.r * 1.5 + this.sclH / 4,
                 r: this.r * 1.8,
                 index: i
