@@ -23,7 +23,9 @@
 > Visualizing the different layers of the neural network to understand the learning process.
 
 ## `Screenshot`
+### Overview
 ![Overview](./img0.png)
+### Train
 ![Train](./img1.png)
 
 ## `License`
