@@ -7,7 +7,7 @@ class Matrix {
     this._data = data;
     this._tempMatrix = [];
 
-    //  initialise with zeroes when on data provided 
+    //  initialize with zeroes when on data provided
     if (data.length === 0 || data === null) {
       this._data = [];
       for (let i = 0; i < this.rows; i++) {
@@ -17,9 +17,9 @@ class Matrix {
         }
       }
     } else {
-      //  chack data row and col is equal in given rows and cols 
+      //  check data row and col is equal in given rows and cols
       if (data.length !== rows || data[0].length !== cols) {
-        throw new Error("Incrrect data dimensions!");
+        throw new Error("Incorrect data dimensions!");
       }
     }
   }
@@ -42,17 +42,17 @@ class Matrix {
     return this._data;
   }
   set data(data) {
-    return this._data = data;
+    return (this._data = data);
   }
 
   get tempMatrix() {
     return this._tempMatrix;
   }
   set tempMatrix(matrix) {
-    return this._tempMatrix = matrix;
+    return (this._tempMatrix = matrix);
   }
 
-  //  apply random weights between -1 to 1 
+  //  apply random weights between -1 to 1
   randomWeights() {
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
@@ -70,9 +70,9 @@ class Matrix {
     }
   }
 
-  //  add to matrixs 
+  //  add to matrixes
   static add(matrix1, matrix2) {
-    Matrix.chackDimensions(matrix1, matrix2);
+    Matrix.checkDimensions(matrix1, matrix2);
     this.tempMatrix = new Matrix(matrix1.rows, matrix1.cols);
     for (let i = 0; i < this.tempMatrix.rows; i++) {
       for (let j = 0; j < this.tempMatrix.cols; j++) {
@@ -83,7 +83,7 @@ class Matrix {
   }
 
   add(matrix2) {
-    Matrix.chackDimensions(this, matrix2);
+    Matrix.checkDimensions(this, matrix2);
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
         this.data[i][j] += matrix2.data[i][j];
@@ -91,9 +91,9 @@ class Matrix {
     }
   }
 
-  //  subtract to matrixs 
+  //  subtract to matrixes
   static subtract(matrix1, matrix2) {
-    Matrix.chackDimensions(matrix1, matrix2);
+    Matrix.checkDimensions(matrix1, matrix2);
     this.tempMatrix = new Matrix(matrix1.rows, matrix1.cols);
     for (let i = 0; i < this.tempMatrix.rows; i++) {
       for (let j = 0; j < this.tempMatrix.cols; j++) {
@@ -104,7 +104,7 @@ class Matrix {
   }
 
   subtract(matrix2) {
-    Matrix.chackDimensions(this, matrix2);
+    Matrix.checkDimensions(this, matrix2);
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
         this.data[i][j] -= matrix2.data[i][j];
@@ -112,9 +112,9 @@ class Matrix {
     }
   }
 
-  //   multiply to matrixs (not dot product) 
+  //   multiply to matrixes (not dot product)
   static multiply(matrix1, matrix2) {
-    Matrix.chackDimensions(matrix1, matrix2);
+    Matrix.checkDimensions(matrix1, matrix2);
     this.tempMatrix = new Matrix(matrix1.rows, matrix1.cols);
     for (let i = 0; i < this.tempMatrix.rows; i++) {
       for (let j = 0; j < this.tempMatrix.cols; j++) {
@@ -125,7 +125,7 @@ class Matrix {
   }
 
   multiply(matrix2) {
-    Matrix.chackDimensions(this, matrix2);
+    Matrix.checkDimensions(this, matrix2);
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
         this.data[i][j] *= matrix2.data[i][j];
@@ -133,10 +133,10 @@ class Matrix {
     }
   }
 
-  //  dot to matrixs (not dot product) 
+  //  dot to matrixes (not dot product)
   static dot(matrix1, matrix2) {
     if (matrix1.cols !== matrix2.rows) {
-      throw new Error("Matices are not dot compatible!");
+      throw new Error("Matrixes are not dot compatible!");
     }
     this.tempMatrix = new Matrix(matrix1.rows, matrix2.cols);
     for (let i = 0; i < this.tempMatrix.rows; i++) {
@@ -151,12 +151,12 @@ class Matrix {
     return this.tempMatrix;
   }
 
-  //  convart array to one rowed array 
+  //  convert array to one rowed array
   static convertFromArray(array) {
     return new Matrix(1, array.length, [array]);
   }
 
-  //  apply a function to each cell of the gavin matrix  
+  //  apply a function to each cell of the given matrix
   static map(matrix1, matrixFunction) {
     this.tempMatrix = new Matrix(matrix1.rows, matrix1.cols);
     for (let i = 0; i < this.tempMatrix.rows; i++) {
@@ -167,7 +167,7 @@ class Matrix {
     return this.tempMatrix;
   }
 
-  //  apply a function to each cell of the gavin matrix  
+  //  apply a function to each cell of the given matrix
   map(matrixFunction) {
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
@@ -176,7 +176,7 @@ class Matrix {
     }
   }
 
-  //  find transpose of the gevin mateix 
+  //  find transpose of the given matrix
   static transpose(matrix1) {
     this.tempMatrix = new Matrix(matrix1.cols, matrix1.rows);
     for (let i = 0; i < matrix1.rows; i++) {
@@ -187,7 +187,7 @@ class Matrix {
     return this.tempMatrix;
   }
 
-  //  find transpose of the gevin mateix 
+  //  find transpose of the given matrix
   transpose() {
     this.tempMatrix = new Matrix(this.cols, this.rows);
     for (let i = 0; i < this.rows; i++) {
@@ -198,10 +198,10 @@ class Matrix {
     this.data = this.tempMatrix.data;
   }
 
-  //  chack matices have the same dimensions 
-  static chackDimensions(matrix1, matrix2) {
+  //  check matrixes have the same dimensions
+  static checkDimensions(matrix1, matrix2) {
     if (matrix1.rows !== matrix2.rows || matrix1.cols !== matrix2.cols) {
-      throw new Error("Matrixs are of different dimensions!");
+      throw new Error("Matrixes are of different dimensions!");
     }
   }
 
@@ -210,4 +210,3 @@ class Matrix {
     console.table(this.data);
   }
 }
-

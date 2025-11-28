@@ -7,10 +7,11 @@
       <title>Number Recognize NN</title>
       <link rel="stylesheet" href="style.css" />
 
-      <script defer src="./wasmJs/wasm.js"></script>
+      <script defer src="./js/matrix.js"></script>
+      <script defer src="./js/neural_network.js"></script>
       <script defer src="./js/utils.js"></script>
-      <script defer src="./js/nnNew.js"></script>
-      <script defer src="./js/nnViewNew.js"></script>
+      <script defer src="./js/need.js"></script>
+      <script defer src="./js/nnView.js"></script>
       <script defer src="./js/main.js"></script>
       <script defer src="./js/event.js"></script>
    </head>
