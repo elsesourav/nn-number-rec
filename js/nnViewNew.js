@@ -37,7 +37,7 @@ class NNView {
 
       // Horizontal spacing based on number of layers in NN
       this.colSpacing =
-         (this.width - 2 * this.margin) / (this.nn.numLayers - 1);
+         (this.width - 2 * this.margin) / (this.nn.getNumLayers() - 1);
 
       // Animation timing
       this.f = 10;
@@ -68,11 +68,11 @@ class NNView {
       this.runTime = this.f * 4;
       this.totalRunTime = this.runTime;
 
-      const L = this.nn.numLayers - 1; // last layer index
+      const L = this.nn.getNumLayers() - 1; // last layer index
 
       // ---- Inputs: compress raw input array into N points like before ----
       // const rawInput = this.nn.inputs.data[0]; // Matrix row
-      const inputs = this.nn.inputs;
+      const inputs = this.nn.getLayer(0);
       const rawInput = [];
       const inCols = inputs.getCols();
       for (let i = 0; i < inCols; i++) rawInput.push(inputs.at(0, i));
@@ -83,7 +83,7 @@ class NNView {
       // ---- Hidden + Output activations ----
       for (let i = 1; i <= L; i++) {
          // const row = this.nn.layers[i].data[0].slice();
-         const layer = this.nn.layers[i];
+         const layer = this.nn.getLayer(i);
          const cols = layer.getCols();
          const row = [];
          for (let k = 0; k < cols; k++) row.push(layer.at(0, k));
@@ -164,7 +164,7 @@ class NNView {
 
    // ----------------- NODE DRAW (OUTLINES) -----------------
    drawNodesSkeleton() {
-      const L = this.nn.numLayers - 1;
+      const L = this.nn.getNumLayers() - 1;
 
       for (let li = 0; li <= L; li++) {
          const layer = this.layerNodes[li];
@@ -179,7 +179,7 @@ class NNView {
 
    // ----------------- CONNECTIONS -----------------
    drawConnections() {
-      const L = this.nn.numLayers - 1;
+      const L = this.nn.getNumLayers() - 1;
 
       for (let li = 0; li < L; li++) {
          const layerA = this.layerNodes[li];
@@ -198,55 +198,41 @@ class NNView {
 
    // ----------------- GEOMETRY / LAYOUT -----------------
 
-   // Input “summary” nodes (kept similar to your old design)
    setInps() {
-      this.inps = [];
-      for (let i = 0; i < this.numCol; i++) {
-         if (i === Math.round(this.numCol / 2) - 1) {
-            // middle split into 2 small nodes
-            let gap = this.sclH / 4;
+      // Input layer is index 0
+      // const count = this.nn.layerSizes[0];
+      // We'll just use the number of nodes we want to visualize for input
+      // (which is usually compressed from 784 -> 16 or similar)
+      // But wait, getInputPoints compresses it.
+      // The actual input layer size is 784.
+      // The visualization uses `this.numCol` (17) or similar?
+      // Let's look at old code logic.
+      // Old code: this.inps = this.createLayerNodes(this.numCol, ...);
+      // So we visualize a fixed number of input nodes regardless of actual input size.
 
-            this.inps.push({
-               x: this.margin + this.rBase,
-               y: this.sclH * i + this.rBase * 1.5 - gap,
-               r: this.rBase / 4,
-            });
-            this.inps.push({
-               x: this.margin + this.rBase,
-               y: this.sclH * i + this.rBase * 1.5 + gap,
-               r: this.rBase / 4,
-            });
-         } else {
-            this.inps.push({
-               x: this.margin + this.rBase,
-               y: this.sclH * i + this.rBase * 1.5,
-               r: this.rBase,
-            });
-         }
-      }
-
-      this.layerNodes[0] = this.inps;
+      const x = this.margin + 0 * this.colSpacing;
+      const nodes = this.createLayerNodes(this.numCol, x, "input");
+      this.layerNodes[0] = nodes;
+      this.inps = nodes;
    }
 
-   // Hidden + Output layers
    setHiddenAndOuts() {
-      const L = this.nn.numLayers - 1;
-      this.outs = [];
+      const L = this.nn.getNumLayers() - 1;
 
       for (let li = 1; li <= L; li++) {
-         const count = this.nn.layerSizes[li];
-         const x = this.margin + this.colSpacing * li;
-         const isOutput = li === L;
+         // const count = this.nn.layerSizes[li];
+         // We need to get layer size from Wasm NN
+         const layer = this.nn.getLayer(li);
+         const count = layer.getCols(); // Assuming row vector layers (1 x N)
 
-         const nodes = this.createLayerNodes(
-            count,
-            x,
-            isOutput ? "output" : "hidden"
-         );
+         const x = this.margin + li * this.colSpacing;
+         const type = li === L ? "output" : "hidden";
 
-         // attach indices for outputs (digits)
-         if (isOutput) {
-            nodes.forEach((n, idx) => (n.index = idx));
+         const nodes = this.createLayerNodes(count, x, type);
+
+         if (type === "output") {
+            // Add index to output nodes
+            nodes.forEach((n, i) => (n.index = i));
             this.outs = nodes;
          }
 
@@ -282,4 +268,30 @@ class NNView {
       }
       return nodes;
    }
+}
+
+function getInputPoints(array, numPoints) {
+   const numP = Math.floor(array.length / numPoints);
+   let points = [];
+
+   for (let i = 0; i < numPoints; i++) {
+      let sum = 0;
+      for (let j = 0; j < numP; j++) {
+         sum += array[numP * i + j];
+      }
+      points.push(sum);
+   }
+   return points.map((e) => (e > 0 ? 1 : 0));
+}
+
+function getMaximumIndex(array) {
+   let max = array[0];
+   let index = 0;
+   for (let i = 1; i < array.length; i++) {
+      if (max < array[i]) {
+         max = array[i];
+         index = i;
+      }
+   }
+   return index;
 }

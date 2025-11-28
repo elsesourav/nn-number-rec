@@ -132,7 +132,7 @@ class NeuralNetwork {
 
       // 4. Output delta = error * derivative(sigmoid(output))
       // Create copy of outputs for derivative calculation
-      const outputDerivs = new this.Matrix(outputs.getData());
+      const outputDerivs = outputs.clone();
       outputDerivs.mapDSigmoid();
 
       this.$deltas[L] = this.Matrix.multiply(this.$errors[L], outputDerivs);
@@ -148,7 +148,7 @@ class NeuralNetwork {
 
          // delta[i] = error[i] * derivative(sigmoid(a[i]))
          const layerI = this.layers[i];
-         const derivs = new this.Matrix(layerI.getData());
+         const derivs = layerI.clone();
          derivs.mapDSigmoid();
 
          this.$deltas[i] = this.Matrix.multiply(this.$errors[i], derivs);
@@ -169,9 +169,11 @@ class NeuralNetwork {
          this.weights[i].add(weightDeltas);
          weightDeltas.delete();
 
-         // update biases (just add delta of next layer)
-         // Note: Original code didn't scale bias update by learning rate, keeping behavior.
-         this.biases[i].add(this.$deltas[i + 1]);
+         // update biases
+         const biasDeltas = this.$deltas[i + 1].clone();
+         biasDeltas.multiplyScalar(this.lrnRate);
+         this.biases[i].add(biasDeltas);
+         biasDeltas.delete();
       }
    }
 

@@ -26,6 +26,8 @@ public:
    std::vector<std::vector<double>> getData() const;
    void setData(const std::vector<std::vector<double>> &newData);
 
+   Matrix clone() const;
+
    // Access element directly (helper for C++ usage)
    double &at(int i, int j);
    const double &at(int i, int j) const;

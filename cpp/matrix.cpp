@@ -47,6 +47,10 @@ std::vector<std::vector<double>> Matrix::getData() const {
    return data;
 }
 
+Matrix Matrix::clone() const {
+   return *this;
+}
+
 void Matrix::setData(const std::vector<std::vector<double>> &newData) {
    data = newData;
    rows = data.size();

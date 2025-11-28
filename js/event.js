@@ -80,10 +80,21 @@ document.body.addEventListener("mouseup", () => {
 let numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 c.on("mouseup", () => {
    getCanvasData();
-   let outputMatrix = nn.feedForward(ary);
+
+   // Convert JS array to Wasm vector
+   const inputVec = new wasmModule.vector1d();
+   ary.forEach((v) => inputVec.push_back(v));
+
+   let outputMatrix = nn.feedForwardArray(inputVec);
+   inputVec.delete();
+
+   // Trigger animation
+   if (window.triggerNNAnimation) window.triggerNNAnimation();
+
    let result = [];
    let cols = outputMatrix.getCols();
    for (let i = 0; i < cols; i++) result.push(outputMatrix.at(0, i));
+   outputMatrix.delete(); // Clean up result matrix
 
    result = result.map((x) => Math.round(x));
    // outputs.innerText = numbers[getIndexWhereOne(result)];
@@ -93,10 +104,21 @@ c.on("touchstart", () => (isDraw = true));
 c.on("touchend", () => {
    isDraw = false;
    getCanvasData();
-   let outputMatrix = nn.feedForward(ary);
+
+   // Convert JS array to Wasm vector
+   const inputVec = new wasmModule.vector1d();
+   ary.forEach((v) => inputVec.push_back(v));
+
+   let outputMatrix = nn.feedForwardArray(inputVec);
+   inputVec.delete();
+
+   // Trigger animation
+   if (window.triggerNNAnimation) window.triggerNNAnimation();
+
    let result = [];
    let cols = outputMatrix.getCols();
    for (let i = 0; i < cols; i++) result.push(outputMatrix.at(0, i));
+   outputMatrix.delete(); // Clean up result matrix
 
    result = result.map((x) => Math.round(x));
    //     outputs.innerText = numbers[getIndexWhereOne(result)];
@@ -134,11 +156,9 @@ menuButton.on("click", () => {
 });
 
 learnRate.on("input", (e) => {
-   let val = e.target.value;
-   nn.lrStape = val;
-   val = val / 8;
-   val = parseFloat((val * val).toFixed(2));
-   val = val >= 3 ? Math.round(val) : val;
+   let val = parseFloat(e.target.value);
+   nn.lrStep = val;
+   val = parseFloat(val.toFixed(3));
    lrShow.innerText = nn.lrnRate = val;
 });
 saveBtn.on("click", () => {
@@ -154,16 +174,20 @@ saveBtn.on("click", () => {
       return data;
    };
 
+   // Assuming 3 layers of weights/biases for a 4-layer network (Input -> H1 -> H2 -> Output)
+   // Or check getNumLayers()
+   const numLayers = nn.getNumLayers();
    const obj = {
-      bias0: getMData(nn.biases[0]),
-      bias1: getMData(nn.biases[1]),
-      bias2: getMData(nn.biases[2]),
-      weights0: getMData(nn.weights[0]),
-      weights1: getMData(nn.weights[1]),
-      weights2: getMData(nn.weights[2]),
       lrnRate: nn.lrnRate,
-      lrStape: nn.lrStape,
+      lrStep: nn.lrStep,
    };
+
+   // Save all weights and biases
+   for (let i = 0; i < numLayers - 1; i++) {
+      obj[`bias${i}`] = getMData(nn.getBiases(i));
+      obj[`weights${i}`] = getMData(nn.getWeights(i));
+   }
+
    setDataFromLocalStorage("sb-nn", obj);
 });
 resetBtn.on("click", () => {

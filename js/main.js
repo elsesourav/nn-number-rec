@@ -7,7 +7,8 @@ const numOut = 10;
 
 let _min_ = Math.floor(minSize / 100);
 _min_ = window.innerHeight < 600 ? _min_ * 40 : _min_ * 60;
-const SIZE = 400;
+const SIZE = 500;
+const CANVAS_SCALE = 2;
 
 cssRoot.style.setProperty("--scale-n", _min_ / 120);
 cssRoot.style.setProperty("--scale", `${_min_ / 30}px`);
@@ -21,33 +22,107 @@ let wasmModule;
 
 createMathModule().then((module) => {
    wasmModule = module;
-   // Fixed constructor arguments: hidden layers as array
-   nn = new NeuralNetwork(
-      numInp,
-      [numHid0, numHid1],
-      numOut,
-      1,
-      8,
-      SIZE * 1.4,
-      SIZE * 1.1,
-      wasmModule
-   );
+
+   // Instantiate Wasm NeuralNetwork
+   // Constructor: (numInp, hiddenSizes, numOut, lrnRate)
+   const hiddenSizes = new wasmModule.vectorInt();
+   hiddenSizes.push_back(numHid0);
+   hiddenSizes.push_back(numHid1);
+
+   nn = new wasmModule.NeuralNetwork(numInp, hiddenSizes, numOut, 1.0);
+   hiddenSizes.delete();
+
+   // Initialize with zeros to ensure clean state
+   const zeroInput = new wasmModule.vector1d();
+   for (let i = 0; i < numInp; i++) zeroInput.push_back(0.0);
+   const initOut = nn.feedForwardArray(zeroInput);
+   initOut.delete();
+   zeroInput.delete();
+
+   // Explicitly reset all activations to 0 (black)
+   nn.resetActivations();
+
+   let ctxView = null;
+   let cvsView = document.getElementById("view-cvs");
+
+   if (cvsView.tagName !== "CANVAS") {
+      // If it's a div, create a canvas inside
+      const newCanvas = document.createElement("canvas");
+      // Double the resolution for sharper rendering
+      newCanvas.width = SIZE * 1.4 * CANVAS_SCALE;
+      newCanvas.height = SIZE * 1.1 * CANVAS_SCALE;
+      // Use CSS to keep the display size the same
+      // newCanvas.style.width = `${SIZE * 1.4}px`;
+      // newCanvas.style.height = `${SIZE * 1}px`;
+      cvsView.appendChild(newCanvas);
+      cvsView = newCanvas;
+   } else {
+      cvsView.width = SIZE * 1.4 * CANVAS_SCALE;
+      cvsView.height = SIZE * 1.1 * CANVAS_SCALE;
+      // cvsView.style.width = `${SIZE * 1.4}px`;
+      // cvsView.style.height = `${SIZE * 1}px`;
+   }
+   ctxView = cvsView.getContext("2d");
+
+   // Initial draw
+   if (nn && ctxView) {
+      drawNetwork(ctxView, nn, cvsView.width, cvsView.height, -1);
+   }
+
+   // Exposed animation trigger
+   window.triggerNNAnimation = () => {
+      const startTime = Date.now();
+      const duration = 1000; // 1 second animation
+
+      const animate = () => {
+         if (!nn || !ctxView) return;
+
+         const elapsed = Date.now() - startTime;
+         let progress = elapsed / duration;
+
+         if (progress >= 1) {
+            // Animation finished, draw final state
+            drawNetwork(ctxView, nn, cvsView.width, cvsView.height, -1);
+            return;
+         }
+
+         drawNetwork(ctxView, nn, cvsView.width, cvsView.height, progress);
+         requestAnimationFrame(animate);
+      };
+      animate();
+   };
 
    const lsd = getDataFromLocalStorage("sb-nn"); // (lsd) local storage data
 
    if (lsd) {
       try {
-         if (lsd.bias0) nn.biases[0].setData(lsd.bias0);
-         if (lsd.bias1) nn.biases[1].setData(lsd.bias1);
-         if (lsd.bias2) nn.biases[2].setData(lsd.bias2);
-         if (lsd.weights0) nn.weights[0].setData(lsd.weights0);
-         if (lsd.weights1) nn.weights[1].setData(lsd.weights1);
-         if (lsd.weights2) nn.weights[2].setData(lsd.weights2);
+         // Helper to set data to Wasm Matrix
+         const setWasmData = (matrix, jsData) => {
+            // jsData is array of arrays
+            const vec2d = new wasmModule.vector2d();
+            for (let i = 0; i < jsData.length; i++) {
+               const row = new wasmModule.vector1d();
+               for (let j = 0; j < jsData[i].length; j++) {
+                  row.push_back(jsData[i][j]);
+               }
+               vec2d.push_back(row);
+               row.delete();
+            }
+            matrix.setData(vec2d);
+            vec2d.delete();
+         };
+
+         if (lsd.bias0) setWasmData(nn.getBiases(0), lsd.bias0);
+         if (lsd.bias1) setWasmData(nn.getBiases(1), lsd.bias1);
+         if (lsd.bias2) setWasmData(nn.getBiases(2), lsd.bias2);
+         if (lsd.weights0) setWasmData(nn.getWeights(0), lsd.weights0);
+         if (lsd.weights1) setWasmData(nn.getWeights(1), lsd.weights1);
+         if (lsd.weights2) setWasmData(nn.getWeights(2), lsd.weights2);
 
          nn.lrnRate = lsd.lrnRate;
-         nn.lrStape = lsd.lrStape;
+         nn.lrStep = lsd.lrStep;
 
-         ID("learn-rate").value = lsd.lrStape;
+         ID("learn-rate").value = lsd.lrStep;
          ID("lr-show").innerText = lsd.lrnRate;
       } catch (e) {
          console.error("Failed to load data from local storage", e);
@@ -83,7 +158,21 @@ function training() {
    if (index != undefined) {
       getCanvasData();
       let outAry = setOutputIndex(index);
-      nn.train(ary, outAry);
+
+      // Convert JS arrays to Wasm vectors
+      const inputVec = new wasmModule.vector1d();
+      ary.forEach((v) => inputVec.push_back(v));
+
+      const targetVec = new wasmModule.vector1d();
+      outAry.forEach((v) => targetVec.push_back(v));
+
+      nn.trainArray(inputVec, targetVec);
+
+      inputVec.delete();
+      targetVec.delete();
+
+      if (window.triggerNNAnimation) window.triggerNNAnimation();
+
       console.clear();
    }
 }

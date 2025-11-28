@@ -1,23 +1,30 @@
-"use strict"
+"use strict";
 
 //use cssRoot.style.setProperty("key", "value");
-const cssRoot = document.querySelector(':root');
+const cssRoot = document.querySelector(":root");
 
 // when run this app in mobile is return true
 const isMobile = localStorage.mobile || window.navigator.maxTouchPoints > 1;
 
 // minimum window size
-const minSize = window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth;
-
+const minSize =
+   window.innerWidth > window.innerHeight
+      ? window.innerHeight
+      : window.innerWidth;
 
 class Canvas {
-   constructor(width = window.innerWidth, height = window.innerHeight, parent = document.body) {
+   constructor(
+      width = window.innerWidth,
+      height = window.innerHeight,
+      parent = document.body
+   ) {
       this.width = width;
       this.height = height;
       this.parent = parent;
-      
+
       this.cvs = document.createElement("canvas");
-      this.ctx = this.cvs.getContext("2d");
+      this.ctx = this.cvs.getContext("2d", { willReadFrequently: true });
+      this.ctx.imageSmoothingEnabled = false;
       this.cvs.width = this.width;
       this.cvs.height = this.height;
       this.parent.appendChild(this.cvs);
@@ -42,41 +49,53 @@ class Canvas {
       this.cvs.addEventListener(event, fun);
    };
 
-   textMode(mode = "center") { this._textMode_ = mode; };
-   arcMode(mode = "center") { this._arcMode_ = mode; };
-   rectMode(mode = "center") { this._rectMode_ = mode; };
-   ellipseMode(mode = "center") { this._ellipseMode_ = mode; };
+   textMode(mode = "center") {
+      this._textMode_ = mode;
+   }
+   arcMode(mode = "center") {
+      this._arcMode_ = mode;
+   }
+   rectMode(mode = "center") {
+      this._rectMode_ = mode;
+   }
+   ellipseMode(mode = "center") {
+      this._ellipseMode_ = mode;
+   }
 
-   clrScr() { this.ctx.clearRect(0, 0, this.width, this.height); };
+   clrScr() {
+      this.ctx.clearRect(0, 0, this.width, this.height);
+   }
 
    clearRect(x = 0, y = 0, w = this.width, h = this.height) {
       this.ctx.clearRect(x, y, w, h);
-   };
+   }
 
    background(red, green, blue, alpha) {
       this.ctx.fillStyle = this.getColor(red, green, blue, alpha);
       this.ctx.fillRect(0, 0, this.width, this.height);
-   };
+   }
 
    fill(red, green, blue, alpha) {
       this.ctx.fillStyle = this.getColor(red, green, blue, alpha);
       this.ctx.fill();
-   };
+   }
 
    fillStyle(red, green, blue, alpha) {
       this.ctx.fillStyle = this.getColor(red, green, blue, alpha);
-   };
+   }
 
    strokeStyle(red, green, blue, alpha) {
       this.ctx.strokeStyle = this.getColor(red, green, blue, alpha);
-   };
+   }
 
    stroke(red, green, blue, alpha) {
       this.ctx.strokeStyle = this.getColor(red, green, blue, alpha);
       this.ctx.stroke();
-   };
+   }
 
-   globalAlpha(alpha) { this.ctx.globalAlpha = alpha; };
+   globalAlpha(alpha) {
+      this.ctx.globalAlpha = alpha;
+   }
 
    strokeRect(x, y, w, h) {
       if (this._rectMode_ == "center") {
@@ -92,7 +111,7 @@ class Canvas {
       } else {
          this.ctx.strokeRect(x, y, w, h);
       }
-   };
+   }
 
    rect(x, y, w, h) {
       if (this._rectMode_ == "center") {
@@ -108,7 +127,7 @@ class Canvas {
       } else {
          this.ctx.rect(x, y, w, h);
       }
-   };
+   }
 
    fillRect(x, y, w, h) {
       if (this._rectMode_ == "center") {
@@ -124,7 +143,7 @@ class Canvas {
       } else {
          this.ctx.fillRect(x, y, w, h);
       }
-   };
+   }
 
    roundRect(x, y, w, h, radiusArray = [50, 20, 50, 20]) {
       this.ctx.beginPath();
@@ -141,13 +160,24 @@ class Canvas {
       } else {
          this.ctx.roundRect(x, y, w, h, radiusArray);
       }
-   };
+   }
 
-   beginPath() { this.ctx.beginPath(); };
+   beginPath() {
+      this.ctx.beginPath();
+   }
 
-   closePath() { this.ctx.closePath(); };
+   closePath() {
+      this.ctx.closePath();
+   }
 
-   arc(x, y, r, startAngle = 0, endAngle = Math.PI * 2, counterclockwise = false) {
+   arc(
+      x,
+      y,
+      r,
+      startAngle = 0,
+      endAngle = Math.PI * 2,
+      counterclockwise = false
+   ) {
       this.ctx.beginPath();
 
       if (this._arcMode_ == "center") {
@@ -163,108 +193,237 @@ class Canvas {
       } else {
          this.ctx.arc(x, y, r, startAngle, endAngle, counterclockwise);
       }
-   };
+   }
 
    moveTo(x, y) {
       this.ctx.beginPath();
       this.ctx.moveTo(x, y);
-   };
+   }
 
-   lineTo(x, y) { this.ctx.lineTo(x, y); };
+   lineTo(x, y) {
+      this.ctx.lineTo(x, y);
+   }
 
    arcTo(x1, y1, x2, y2, radius = 50) {
       this.ctx.arcTo(x1, y1, x2, y2, radius);
-   };
+   }
 
-   lineWidth(width) { this.ctx.lineWidth = width; };
+   lineWidth(width) {
+      this.ctx.lineWidth = width;
+   }
 
-   lineCap(style) { this.ctx.lineCap = style; };
+   lineCap(style) {
+      this.ctx.lineCap = style;
+   }
 
-   lineJoin(style) { this.ctx.lineJoin = style; };
+   lineJoin(style) {
+      this.ctx.lineJoin = style;
+   }
 
-   getLineDash() { return this.ctx.getLineDash(); };
+   getLineDash() {
+      return this.ctx.getLineDash();
+   }
 
-   setLineDash(array) { this.ctx.setLineDash(array); };
+   setLineDash(array) {
+      this.ctx.setLineDash(array);
+   }
 
-   lineDashOffset(offset) { this.ctx.lineDashOffset = offset; };
+   lineDashOffset(offset) {
+      this.ctx.lineDashOffset = offset;
+   }
 
    drawImage(image, dx, dy) {
       this.ctx.drawImage(image, dx, dy);
-   };
+   }
    drawImage(image, dx, dy, dWidth, dHeight) {
       this.ctx.drawImage(image, dx, dy, dWidth, dHeight);
-   };
+   }
    drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
-      this.ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
-   };
+      this.ctx.drawImage(
+         image,
+         sx,
+         sy,
+         sWidth,
+         sHeight,
+         dx,
+         dy,
+         dWidth,
+         dHeight
+      );
+   }
 
-   ellipse(x, y, rediusX, rediusY, rotation = Math.PI / 4, startAngle = 0, endAngle = Math.PI * 2, counterclockwise = false) {
+   ellipse(
+      x,
+      y,
+      rediusX,
+      rediusY,
+      rotation = Math.PI / 4,
+      startAngle = 0,
+      endAngle = Math.PI * 2,
+      counterclockwise = false
+   ) {
       this.ctx.beginPath();
 
       if (this._ellipseMode_ == "center") {
-         this.ctx.ellipse(x, y, rediusX, rediusY, rotation, startAngle, endAngle, counterclockwise);
+         this.ctx.ellipse(
+            x,
+            y,
+            rediusX,
+            rediusY,
+            rotation,
+            startAngle,
+            endAngle,
+            counterclockwise
+         );
       } else if (this._ellipseMode_ == "left") {
-         this.ctx.ellipse(x - rediusX, y, rediusX, rediusY, rotation, startAngle, endAngle, counterclockwise);
+         this.ctx.ellipse(
+            x - rediusX,
+            y,
+            rediusX,
+            rediusY,
+            rotation,
+            startAngle,
+            endAngle,
+            counterclockwise
+         );
       } else if (this._ellipseMode_ == "right") {
-         this.ctx.ellipse(x + rediusX, y, rediusX, rediusY, rotation, startAngle, endAngle, counterclockwise);
+         this.ctx.ellipse(
+            x + rediusX,
+            y,
+            rediusX,
+            rediusY,
+            rotation,
+            startAngle,
+            endAngle,
+            counterclockwise
+         );
       } else if (this._ellipseMode_ == "top") {
-         this.ctx.ellipse(x, y - rediusY, rediusX, rediusY, rotation, startAngle, endAngle, counterclockwise);
+         this.ctx.ellipse(
+            x,
+            y - rediusY,
+            rediusX,
+            rediusY,
+            rotation,
+            startAngle,
+            endAngle,
+            counterclockwise
+         );
       } else if (this._ellipseMode_ == "bottom") {
-         this.ctx.ellipse(x, y + rediusY, rediusX, rediusY, rotation, startAngle, endAngle, counterclockwise);
+         this.ctx.ellipse(
+            x,
+            y + rediusY,
+            rediusX,
+            rediusY,
+            rotation,
+            startAngle,
+            endAngle,
+            counterclockwise
+         );
       } else {
-         this.ctx.ellipse(x, y, rediusX, rediusY, rotation, startAngle, endAngle, counterclockwise);
+         this.ctx.ellipse(
+            x,
+            y,
+            rediusX,
+            rediusY,
+            rotation,
+            startAngle,
+            endAngle,
+            counterclockwise
+         );
       }
-   };
+   }
 
-   // squice first two sides 
+   // squice first two sides
    bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
       this.ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y);
-   };
+   }
 
    quadraticCurveTo(cpx, cpy, x, y) {
       this.ctx.beginPath();
       this.ctx.quadraticCurveTo(cpx, cpy, x, y);
-   };
+   }
 
    createPattern(image, repetition = "repeat") {
       return this.ctx.createPattern(image, repetition);
-   };
-   reset() { this.ctx.reset(); };
+   }
+   reset() {
+      this.ctx.reset();
+   }
 
-   resetTransform() { this.ctx.resetTransform(); };
+   resetTransform() {
+      this.ctx.resetTransform();
+   }
 
-   restore() { this.ctx.restore(); };
+   restore() {
+      this.ctx.restore();
+   }
 
-   rotate(angle) { this.ctx.rotate(angle); };
+   rotate(angle) {
+      this.ctx.rotate(angle);
+   }
 
-   save() { this.ctx.save(); };
+   save() {
+      this.ctx.save();
+   }
 
-   clip() { this.ctx.clip(); };
+   clip() {
+      this.ctx.clip();
+   }
 
-   filter(filter) { this.ctx.filter = filter; };
+   filter(filter) {
+      this.ctx.filter = filter;
+   }
 
-   scale(x, y) { this.ctx.scale(x, y); };
-   scaleX(x) { this.ctx.scale(x, 0); };
-   scaleY(y) { this.ctx.scale(0, y); };
+   scale(x, y) {
+      this.ctx.scale(x, y);
+   }
+   scaleX(x) {
+      this.ctx.scale(x, 0);
+   }
+   scaleY(y) {
+      this.ctx.scale(0, y);
+   }
 
-   translate(x, y) { this.ctx.translate(x, y); };
-   translateX(x) { this.ctx.translate(x, 0); };
-   translateY(y) { this.ctx.translate(0, y); };
+   translate(x, y) {
+      this.ctx.translate(x, y);
+   }
+   translateX(x) {
+      this.ctx.translate(x, 0);
+   }
+   translateY(y) {
+      this.ctx.translate(0, y);
+   }
 
-   transform(scaleW = 1, skewingH = 2, skewingW = 2, scaleH = 1, moveW = 0, moveH = 0) {
+   transform(
+      scaleW = 1,
+      skewingH = 2,
+      skewingW = 2,
+      scaleH = 1,
+      moveW = 0,
+      moveH = 0
+   ) {
       this.ctx.transform(scaleW, skewingH, skewingW, scaleH, moveW, moveH);
-   };
+   }
 
-   setTransform(scaleW = 1, skewingH = 2, skewingW = 2, scaleH = 1, moveW = 0, moveH = 0) {
+   setTransform(
+      scaleW = 1,
+      skewingH = 2,
+      skewingW = 2,
+      scaleH = 1,
+      moveW = 0,
+      moveH = 0
+   ) {
       this.ctx.setTransform(scaleW, skewingH, skewingW, scaleH, moveW, moveH);
-   };
+   }
 
    font(size, family = "sans-serif", style = "") {
       this._fontSize_ = size;
       this.ctx.font = `${style} ${size}px ${family}`;
-   };
+   }
 
-   textAlign(alignment) { this.ctx.textAlign = alignment; };
+   textAlign(alignment) {
+      this.ctx.textAlign = alignment;
+   }
 
    fillText(text, x, y, maxWidth = undefined) {
       if (this._textMode_ == "center") {
@@ -285,7 +444,7 @@ class Canvas {
       } else {
          this.ctx.fillText(text, x, y, maxWidth);
       }
-   };
+   }
 
    strokeText(text, x, y, maxWidth = undefined) {
       if (this._textMode_ == "center") {
@@ -306,66 +465,104 @@ class Canvas {
       } else {
          this.ctx.strokeText(text, x, y, maxWidth);
       }
-   };
+   }
 
-   fontVariantCaps(smallCaps0__allSmallCaps1__petiteCaps2__allPetiteCaps3__unicase4__titlingCaps5 = 0) {
-      this.ctx.fontVariantCaps = (['small-caps', 'all-small-caps', 'petite-caps', 'all-petite-caps', 'unicase', 'titling-caps'])[smallCaps0__allSmallCaps1__petiteCaps2__allPetiteCaps3__unicase4__titlingCaps5 > 5 ? 5 : smallCaps0__allSmallCaps1__petiteCaps2__allPetiteCaps3__unicase4__titlingCaps5];
-   };
+   fontVariantCaps(
+      smallCaps0__allSmallCaps1__petiteCaps2__allPetiteCaps3__unicase4__titlingCaps5 = 0
+   ) {
+      this.ctx.fontVariantCaps = [
+         "small-caps",
+         "all-small-caps",
+         "petite-caps",
+         "all-petite-caps",
+         "unicase",
+         "titling-caps",
+      ][
+         smallCaps0__allSmallCaps1__petiteCaps2__allPetiteCaps3__unicase4__titlingCaps5 >
+         5
+            ? 5
+            : smallCaps0__allSmallCaps1__petiteCaps2__allPetiteCaps3__unicase4__titlingCaps5
+      ];
+   }
 
-   letterSpacing(space) { this.ctx.letterSpacing = `${space}px`; };
+   letterSpacing(space) {
+      this.ctx.letterSpacing = `${space}px`;
+   }
 
-   wordSpacing(space) { this.ctx.wordSpacing = `${space}px`; };
+   wordSpacing(space) {
+      this.ctx.wordSpacing = `${space}px`;
+   }
 
-   measureText(text) { return this.ctx.measureText(text) };
+   measureText(text) {
+      return this.ctx.measureText(text);
+   }
 
    direction(ltr0__OR__rtl1 = 0) {
       this.ctx.direction = ltr0__OR__rtl1 === 0 ? "ltr" : "rtl";
-   };
+   }
 
    shadowColor(red, green, blue, alpha) {
       this.ctx.shadowColor = this.getColor(red, green, blue, alpha);
-   };
+   }
 
-   shadowBlur(size) { this.ctx.shadowBlur = size; };
+   shadowBlur(size) {
+      this.ctx.shadowBlur = size;
+   }
 
-   shadowOffsetX(offsetX) { this.ctx.shadowOffsetX = offsetX; };
-   shadowOffsetY(offsetY) { this.ctx.shadowOffsetY = offsetY; };
+   shadowOffsetX(offsetX) {
+      this.ctx.shadowOffsetX = offsetX;
+   }
+   shadowOffsetY(offsetY) {
+      this.ctx.shadowOffsetY = offsetY;
+   }
    shadowOffset(offsetX, offsetY) {
       this.ctx.shadowOffsetX = offsetX;
       this.ctx.shadowOffsetY = offsetY;
-   };
+   }
 
    createImageData(sw, sh, settings = undefined) {
       return this.ctx.createImageData(sw, sh, settings);
-   };
+   }
 
-   getImageData(sx, sy, sw, sh) { return this.ctx.getImageData(sx, sy, sw, sh); };
+   getImageData(sx, sy, sw, sh) {
+      return this.ctx.getImageData(sx, sy, sw, sh);
+   }
 
-   putImageData(image, dx, dy) { this.ctx.putImageData(image, dx, dy); };
+   putImageData(image, dx, dy) {
+      this.ctx.putImageData(image, dx, dy);
+   }
 
    createLinearGradient(x1, y1, x2, y2) {
       return this.ctx.createLinearGradient(x1, y1, x2, y2);
-   };
+   }
 
    createConicGradient(startAngle, x, y) {
       return this.ctx.createConicGradient(startAngle, x, y);
-   };
+   }
 
    createRadialGradient(x1, y1, r1, x2, y2, r2) {
       return this.ctx.createRadialGradient(x1, y1, r1, x2, y2, r2);
-   };
+   }
 
-   toDataURL(type = 'image/jpeg', quality = "0.5") {
+   toDataURL(type = "image/jpeg", quality = "0.5") {
       return this.cvs.toDataURL(type, quality);
-   };
+   }
 
-   getTransform() { return this.ctx.getTransform() };
+   getTransform() {
+      return this.ctx.getTransform();
+   }
 
-   isContextLost() { return this.ctx.isContextLost() };
+   isContextLost() {
+      return this.ctx.isContextLost();
+   }
 
-   isPointInPath() { return this.ctx.isPointInPath() };
+   isPointInPath() {
+      return this.ctx.isPointInPath();
+   }
 
-   isPointInStroke() { return this.ctx.isPointInStroke() };
+   isPointInStroke() {
+      return this.ctx.isPointInStroke();
+   }
 
    getColor(red, green, blue, alpha) {
       if (typeof red === "string") {
@@ -375,13 +572,17 @@ class Canvas {
       } else if (typeof blue === "number") {
          return `rgba(${red}, ${green}, ${blue}, ${1})`;
       } else if (typeof green === "number") {
-         return `rgba(${red}, ${green}, ${Math.round(Math.random() * 255)}, ${1})`;
+         return `rgba(${red}, ${green}, ${Math.round(
+            Math.random() * 255
+         )}, ${1})`;
       } else if (typeof red === "number") {
          return `rgba(${red}, ${red}, ${red}, ${1})`;
       } else {
-         return `rgba(${Math.round(Math.random() * 255)}, ${Math.round(Math.random() * 255)}, ${Math.round(Math.random() * 255)}, ${1})`;
+         return `rgba(${Math.round(Math.random() * 255)}, ${Math.round(
+            Math.random() * 255
+         )}, ${Math.round(Math.random() * 255)}, ${1})`;
       }
-   };
+   }
 }
 
 class Animation {
@@ -457,22 +658,21 @@ const $$ = (selector) => {
    return self;
 };
 
-Math.toRadian = degree => (degree * Math.PI) / 180;// degree to radian
-Math.toRadian = radian => (radian * 180) / Math.PI;// radian to Degree
+Math.toRadian = (degree) => (degree * Math.PI) / 180; // degree to radian
+Math.toRadian = (radian) => (radian * 180) / Math.PI; // radian to Degree
 
 Math.rnd = (start = 0, end = 1, int_floor = false) => {
-   const result = start + (Math.random() * (end - start));
+   const result = start + Math.random() * (end - start);
    return int_floor ? Math.floor(result) : result;
-}
+};
 
 /* e.x 
 (0 start) -------.------ (10 end) input . = 5
 (10 min) ----------------.---------------- (30 max) output . = 20
 */
 Math.map = (point, start, end, min, max) => {
-   return ((max - min) * (point - start) / (end - start)) + min;
-}
-
+   return ((max - min) * (point - start)) / (end - start) + min;
+};
 
 function hover(element) {
    const elements = typeof element == "object" ? element : [element];
@@ -490,7 +690,7 @@ function hover(element) {
       ele.addEventListener("mouseleave", () => {
          if (!isMobile) ele.classList.remove("_on_");
       });
-   })
+   });
 }
 /* ---- example ---- */
 // .hover {
@@ -503,14 +703,13 @@ function hover(element) {
 // }
 hover(document.querySelectorAll(".hover"));
 
-
 /* ----  local storage set and get ---- */
 function setDataFromLocalStorage(key, object) {
    var data = JSON.stringify(object);
    localStorage.setItem(key, data);
 }
 function getDataFromLocalStorage(key) {
-   return JSON.parse(localStorage.getItem(key))
+   return JSON.parse(localStorage.getItem(key));
 }
 
 // class add in html
@@ -582,5 +781,3 @@ class Vector {
       this.y = Math.random() * 2 - 1;
    }
 }
-
-
