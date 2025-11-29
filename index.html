@@ -4,7 +4,11 @@
       <meta charset="UTF-8" />
       <meta http-equiv="X-UA-Compatible" content="IE=edge" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Number Recognize NN</title>
+      <!-- add theme color for mobile browser header -->
+      <meta name="theme-color" content="#151520" />
+      <!-- add favicon -->
+      <link rel="icon" href="./src/favicon.png" type="image/png" />
+      <title>Number Recognize Wasm</title>
       <link rel="stylesheet" href="css/style.css" />
 
       <script defer src="./wasmJs/wasm.js"></script>
@@ -21,7 +25,7 @@
       </div>
       <main>
          <div id="options">
-            <div class="title">MENU</div>
+            <div class="title">OPTIONS</div>
             <div class="ranges">
                <div class="row">
                   <!-- <label for="speed">Learning Rate</label> -->
@@ -43,13 +47,13 @@
                <input
                   type="button"
                   class="btn hover"
-                  value="SAVE TRAIN"
+                  value="SAVE YOUR TRAIN MODEL"
                   id="save"
                />
                <input
                   type="button"
                   class="btn hover"
-                  value="LOAD TRAIN DATA"
+                  value="LOAD PRE TRAIN MODEL"
                   id="load-json-btn"
                />
                <input
@@ -61,7 +65,7 @@
                <input
                   type="button"
                   class="btn hover"
-                  value="CLEAR TRAIN"
+                  value="CLEAR TRAIN MODEL"
                   id="reset"
                />
             </div>
