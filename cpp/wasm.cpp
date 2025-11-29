@@ -1,6 +1,5 @@
 #include "matrix.h"
 #include "nn.h"
-#include "tensor.h"
 #include <emscripten/bind.h>
 #include <numeric>
 #include <vector>
@@ -44,18 +43,6 @@ EMSCRIPTEN_BINDINGS(my_module) {
        .class_function("transpose", &Matrix::transpose)
        .class_function("convertFromArray", &Matrix::convertFromArray);
 
-   class_<Tensor>("Tensor")
-       .constructor<emscripten::val>()
-       .function("getShape", &Tensor::getShape)
-       .function("getData", &Tensor::getData)
-       .function("get", select_overload<double(emscripten::val) const>(&Tensor::get))
-       .function("set", select_overload<void(emscripten::val, double)>(&Tensor::set))
-       .function("push", &Tensor::push)
-       .function("insert", &Tensor::insert)
-       .function("pop", &Tensor::pop)
-       .function("slice", select_overload<Tensor(int, int) const>(&Tensor::slice))
-       .function("slice", select_overload<Tensor(int) const>(&Tensor::slice))
-       .function("show", &Tensor::show);
 
    class_<NeuralNetwork>("NeuralNetwork")
        .constructor<int, std::vector<int>, int, double>()

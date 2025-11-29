@@ -14,68 +14,70 @@
       <script defer src="./js/event.js"></script>
    </head>
    <body>
+      <div id="menu-icon">
+         <span></span>
+         <span></span>
+         <span></span>
+      </div>
       <main>
-         <div id="menu-icon">
-            <span></span>
-            <span></span>
-            <span></span>
-         </div>
          <div id="options">
             <div class="title">MENU</div>
             <div class="ranges">
                <div class="row">
-                  <label for="speed">Learning Rate</label>
+                  <!-- <label for="speed">Learning Rate</label> -->
                   <input
                      type="range"
-                     value="1"
+                     value="0.99"
                      id="learn-rate"
                      max="4"
                      min="0.01"
                      step="0.01"
                   />
                   <span>
-                     <p id="lr-show">1</p>
-                     <b>&nbsp;lr</b>
+                     <p id="lr-show">0.99</p>
+                     <b>&nbsp;Learning Rate</b>
                   </span>
                </div>
             </div>
             <div class="buttons">
-               <input type="button" class="btn hover" value="SAVE" id="save" />
                <input
                   type="button"
                   class="btn hover"
-                  value="Restore"
-                  id="restore"
+                  value="SAVE TRAIN"
+                  id="save"
                />
                <input
                   type="button"
                   class="btn hover"
-                  value="RESET"
+                  value="CLEAR TRAIN"
                   id="reset"
                />
             </div>
          </div>
       </main>
-      <div id="view-cvs"></div>
-      <div id="cvs"></div>
-      <div class="view">
-         <div class="inputs">
-            <button class="btn hover" id="clear">CLEAR</button>
-            <button class="btn hover" id="training">NUMPAD</button>
+      <div id="app-content">
+         <div id="view-cvs"></div>
+         <div id="cvs"></div>
+         <div class="view">
+            <div class="inputs">
+               <button class="btn hover" id="clear">CLEAR</button>
+               <button class="btn hover" id="training">NUMPAD</button>
+            </div>
+            <div id="num-btn">
+               <button class="number btn hover">0</button>
+               <button class="number btn hover">1</button>
+               <button class="number btn hover">2</button>
+               <button class="number btn hover">3</button>
+               <button class="number btn hover">4</button>
+               <button class="number btn hover">5</button>
+               <button class="number btn hover">6</button>
+               <button class="number btn hover">7</button>
+               <button class="number btn hover">8</button>
+               <button class="number btn hover">9</button>
+            </div>
+            <div id="train"><button class="btn train hover">TRAIN</button></div>
          </div>
-         <div id="num-btn">
-            <button class="number btn hover">0</button>
-            <button class="number btn hover">1</button>
-            <button class="number btn hover">2</button>
-            <button class="number btn hover">3</button>
-            <button class="number btn hover">4</button>
-            <button class="number btn hover">5</button>
-            <button class="number btn hover">6</button>
-            <button class="number btn hover">7</button>
-            <button class="number btn hover">8</button>
-            <button class="number btn hover">9</button>
-         </div>
-         <div id="train"><button class="btn train hover">TRAIN</button></div>
       </div>
+      <div id="toast">Network Saved!</div>
    </body>
 </html>

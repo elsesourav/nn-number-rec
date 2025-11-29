@@ -2,7 +2,34 @@
 
 The `Tensor` class provides a flexible N-dimensional array container. Unlike `Matrix`, which is strictly 2D and optimized for math, `Tensor` is designed for data manipulation, supporting arbitrary dimensions and dynamic resizing along the first axis (axis 0).
 
+## how to setup in wasm cpp file
+```cpp
+   #include "tensor.h"
+   #include <emscripten/bind.h>
+   #include <numeric>
+   #include <vector>
+
+   using namespace emscripten;
+
+   // Bindings
+   EMSCRIPTEN_BINDINGS(my_module) {
+      class_<Tensor>("Tensor")
+      .constructor<emscripten::val>()
+      .function("getShape", &Tensor::getShape)
+      .function("getData", &Tensor::getData)
+      .function("get", select_overload<double(emscripten::val) const>(&Tensor::get))
+      .function("set", select_overload<void(emscripten::val, double)>(&Tensor::set))
+      .function("push", &Tensor::push)
+      .function("insert", &Tensor::insert)
+      .function("pop", &Tensor::pop)
+      .function("slice", select_overload<Tensor(int, int) const>(&Tensor::slice))
+      .function("slice", select_overload<Tensor(int) const>(&Tensor::slice))
+      .function("show", &Tensor::show);
+   }
+```
+
 ## Constructors
+
 
 ### `new Tensor(jsArray)`
 

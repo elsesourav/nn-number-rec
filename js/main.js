@@ -42,6 +42,36 @@ createMathModule().then((module) => {
    // Explicitly reset all activations to 0 (black)
    nn.resetActivations();
 
+   // --- Auto Load Logic ---
+   const savedLR = getDataFromLocalStorage("sb-nn-lr");
+   if (savedLR) {
+      nn.lrnRate = parseFloat(savedLR);
+      nn.lrStep = parseFloat(savedLR);
+      const learnRateInput = document.getElementById("learn-rate");
+      const lrShow = document.getElementById("lr-show");
+      if (learnRateInput) learnRateInput.value = savedLR;
+      if (lrShow) lrShow.innerText = savedLR;
+   }
+
+   const savedData = getDataFromLocalStorage("sb-nn-data");
+   if (savedData) {
+      const numLayers = nn.getNumLayers();
+      for (let i = 0; i < numLayers - 1; i++) {
+         if (savedData[`bias${i}`]) {
+            const m = new wasmModule.Matrix(savedData[`bias${i}`]);
+            nn.setBiases(i, m);
+            m.delete();
+         }
+         if (savedData[`weights${i}`]) {
+            const m = new wasmModule.Matrix(savedData[`weights${i}`]);
+            nn.setWeights(i, m);
+            m.delete();
+         }
+      }
+      console.log("Network restored from auto-save");
+   }
+   // -----------------------
+
    let ctxView = null;
    let cvsView = document.getElementById("view-cvs");
 
@@ -98,43 +128,6 @@ createMathModule().then((module) => {
          drawNetwork(ctxView, nn, cvsView.width, cvsView.height, -1);
       }
    };
-
-   const lsd = getDataFromLocalStorage("sb-nn"); // (lsd) local storage data
-
-   if (lsd) {
-      try {
-         // Helper to set data to Wasm Matrix
-         const setWasmData = (matrix, jsData) => {
-            // jsData is array of arrays
-            const vec2d = new wasmModule.vector2d();
-            for (let i = 0; i < jsData.length; i++) {
-               const row = new wasmModule.vector1d();
-               for (let j = 0; j < jsData[i].length; j++) {
-                  row.push_back(jsData[i][j]);
-               }
-               vec2d.push_back(row);
-               row.delete();
-            }
-            matrix.setData(vec2d);
-            vec2d.delete();
-         };
-
-         if (lsd.bias0) setWasmData(nn.getBiases(0), lsd.bias0);
-         if (lsd.bias1) setWasmData(nn.getBiases(1), lsd.bias1);
-         if (lsd.bias2) setWasmData(nn.getBiases(2), lsd.bias2);
-         if (lsd.weights0) setWasmData(nn.getWeights(0), lsd.weights0);
-         if (lsd.weights1) setWasmData(nn.getWeights(1), lsd.weights1);
-         if (lsd.weights2) setWasmData(nn.getWeights(2), lsd.weights2);
-
-         nn.lrnRate = lsd.lrnRate;
-         nn.lrStep = lsd.lrStep;
-
-         ID("learn-rate").value = lsd.lrStep;
-         ID("lr-show").innerText = lsd.lrnRate;
-      } catch (e) {
-         console.error("Failed to load data from local storage", e);
-      }
-   }
 });
 
 function draw(x, y, r) {

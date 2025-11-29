@@ -196,19 +196,25 @@ function drawNetwork(ctx, nn, width, height, progress) {
          ctx.beginPath();
          ctx.arc(x, y, r, 0, Math.PI * 2);
          const v = Math.floor(val * 255);
-         ctx.fillStyle = `rgba(${v}, ${v}, ${v}, 1)`;
+
+         if (l === numLayers - 1) {
+            if (i === maxInd && val !== 0) ctx.fillStyle = `rgb(0, 255, 0)`;
+            else ctx.fillStyle = `rgb(${v}, ${v}, ${v})`;
+         } else {
+            ctx.fillStyle = `rgb(${v}, ${v}, ${v})`;
+         }
          ctx.strokeStyle = "white";
          ctx.lineWidth = width * 0.0012;
          ctx.fill();
          ctx.stroke();
 
          if (l === numLayers - 1) {
-            if (i === maxInd && val !== 0) ctx.fillStyle = "#1500ffff";
-            else ctx.fillStyle = val > 0.5 ? "black" : "white";
-            ctx.font = `Semi Bold ${
+            if (val > 0.5 || (i === maxInd && val !== 0))
+               ctx.fillStyle = "black";
+            else ctx.fillStyle = "white";
+            ctx.font = `normal ${
                r * 1.2
-            }px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif`;
+            }px "Courier New", Courier, monospace`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(i, x, y);

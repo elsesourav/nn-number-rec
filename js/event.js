@@ -19,7 +19,7 @@ let cvsOffset = c.cvs.getBoundingClientRect();
 
 window.addEventListener("resize", () => {
    cvsOffset = c.cvs.getBoundingClientRect();
-})
+});
 
 c.on("click", (e) => {
    offsetX = Math.map(
@@ -159,14 +159,17 @@ if (isMobile) {
 
 menuButton.on("click", () => {
    mainDiv.classList.toggle("active");
+   document.body.classList.toggle("menu-open");
 });
 
 learnRate.on("input", (e) => {
    let val = parseFloat(e.target.value);
    nn.lrStep = val;
-   val = parseFloat(val.toFixed(3));
+   val = parseFloat(val.toFixed(2));
    lrShow.innerText = nn.lrnRate = val;
+   setDataFromLocalStorage("sb-nn-lr", val);
 });
+
 saveBtn.on("click", () => {
    const getMData = (m) => {
       const rows = m.getRows();
@@ -180,13 +183,8 @@ saveBtn.on("click", () => {
       return data;
    };
 
-   // Assuming 3 layers of weights/biases for a 4-layer network (Input -> H1 -> H2 -> Output)
-   // Or check getNumLayers()
    const numLayers = nn.getNumLayers();
-   const obj = {
-      lrnRate: nn.lrnRate,
-      lrStep: nn.lrStep,
-   };
+   const obj = {};
 
    // Save all weights and biases
    for (let i = 0; i < numLayers - 1; i++) {
@@ -194,8 +192,32 @@ saveBtn.on("click", () => {
       obj[`weights${i}`] = getMData(nn.getWeights(i));
    }
 
-   setDataFromLocalStorage("sb-nn", obj);
+   setDataFromLocalStorage("sb-nn-data", obj);
+   showToast("Network Saved!");
 });
 resetBtn.on("click", () => {
-   setDataFromLocalStorage("sb-nn", "");
+   setDataFromLocalStorage("sb-nn-data", "");
+   setDataFromLocalStorage("sb-nn-lr", "");
+   location.reload();
 });
+
+// Close menu when clicking outside
+document.addEventListener("click", (e) => {
+   if (
+      document.body.classList.contains("menu-open") &&
+      !mainDiv.contains(e.target) &&
+      !menuButton.contains(e.target)
+   ) {
+      mainDiv.classList.remove("active");
+      document.body.classList.remove("menu-open");
+   }
+});
+
+function showToast(msg) {
+   const toast = document.getElementById("toast");
+   toast.innerText = msg;
+   toast.classList.add("show");
+   setTimeout(() => {
+      toast.classList.remove("show");
+   }, 3000);
+}
