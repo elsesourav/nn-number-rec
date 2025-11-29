@@ -114,6 +114,84 @@ void NeuralNetwork::trainArray(const std::vector<double> &input, const std::vect
    train(mIn, mTgt);
 }
 
+void NeuralNetwork::trainBatch(const std::vector<double> &inputs, const std::vector<double> &targets, int batchSize) {
+   if (batchSize <= 0)
+      return;
+
+   int inputSize = layerSizes[0];
+   int outputSize = layerSizes[numLayers - 1];
+
+   // Initialize accumulators for gradients
+   std::vector<Matrix> weightGradients;
+   std::vector<Matrix> biasGradients;
+
+   for (int i = 0; i < numLayers - 1; i++) {
+      weightGradients.push_back(Matrix(weights[i].getRows(), weights[i].getCols())); // Init with 0
+      biasGradients.push_back(Matrix(biases[i].getRows(), biases[i].getCols()));     // Init with 0
+   }
+
+   for (int b = 0; b < batchSize; b++) {
+      // Extract single input and target
+      std::vector<double> inputVec(inputs.begin() + b * inputSize, inputs.begin() + (b + 1) * inputSize);
+      std::vector<double> targetVec(targets.begin() + b * outputSize, targets.begin() + (b + 1) * outputSize);
+
+      Matrix input = Matrix::convertFromArray(inputVec);
+      Matrix target = Matrix::convertFromArray(targetVec);
+
+      // --- Forward Pass ---
+      layers[0] = input;
+      for (int i = 0; i < numLayers - 1; i++) {
+         Matrix z = Matrix::dot(layers[i], weights[i]);
+         z.add(biases[i]);
+         z.map([](double x) { return 1.0 / (1.0 + std::exp(-x)); });
+         layers[i + 1] = z;
+      }
+      Matrix outputs = layers[numLayers - 1];
+
+      // --- Backprop ---
+      int L = numLayers - 1;
+
+      // Output error
+      errors[L] = Matrix::subtract(target, outputs);
+
+      // Output delta
+      Matrix outputDerivs = outputs;
+      outputDerivs.map([](double x) { return x * (1.0 - x); });
+      deltas[L] = Matrix::multiply(errors[L], outputDerivs);
+
+      // Hidden deltas
+      for (int i = L - 1; i > 0; i--) {
+         Matrix wT = Matrix::transpose(weights[i]);
+         errors[i] = Matrix::dot(deltas[i + 1], wT);
+
+         Matrix layerI = layers[i];
+         Matrix derivs = layerI;
+         derivs.map([](double x) { return x * (1.0 - x); });
+         deltas[i] = Matrix::multiply(errors[i], derivs);
+      }
+
+      // --- Accumulate Gradients ---
+      for (int i = 0; i < numLayers - 1; i++) {
+         Matrix aT = Matrix::transpose(layers[i]);
+         Matrix weightDelta = Matrix::dot(aT, deltas[i + 1]);
+
+         weightGradients[i].add(weightDelta);
+         biasGradients[i].add(deltas[i + 1]);
+      }
+   }
+
+   // --- Apply Gradients ---
+   double scalar = lrnRate / batchSize;
+
+   for (int i = 0; i < numLayers - 1; i++) {
+      weightGradients[i].multiply(scalar);
+      biasGradients[i].multiply(scalar);
+
+      weights[i].add(weightGradients[i]);
+      biases[i].add(biasGradients[i]);
+   }
+}
+
 int NeuralNetwork::getNumLayers() const { return numLayers; }
 
 Matrix NeuralNetwork::getLayer(int index) const {

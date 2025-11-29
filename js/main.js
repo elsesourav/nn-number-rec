@@ -1,8 +1,8 @@
 const pixel = 28;
 const inpNums = $$(".number");
 const numInp = pixel * pixel;
-const numHid0 = 16;
-const numHid1 = 16;
+const numHid0 = 64;
+const numHid1 = 64;
 const numOut = 10;
 let pencilSize = pixel / 8;
 
@@ -141,9 +141,63 @@ let index,
 function getCanvasData() {
    ary = [];
    const cvsData = c.getImageData(0, 0, pixel, pixel).data;
+   let inputs = [];
+
+   // 1. Extract raw grayscale values
    for (let i = 0; i < numInp * 4; i += 4) {
-      ary.push(Math.map(cvsData[i], 0, 255, 0, 1));
+      inputs.push(Math.map(cvsData[i], 0, 255, 0, 1));
    }
+
+   // 2. Find Bounding Box
+   let minX = pixel,
+      minY = pixel,
+      maxX = 0,
+      maxY = 0;
+   let hasData = false;
+
+   for (let y = 0; y < pixel; y++) {
+      for (let x = 0; x < pixel; x++) {
+         if (inputs[y * pixel + x] > 0.1) {
+            // Threshold for "content"
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            hasData = true;
+         }
+      }
+   }
+
+   if (!hasData) {
+      ary = inputs; // Empty image
+      return;
+   }
+
+   // 3. Center the image (Bounding Box Centering)
+   const width = maxX - minX + 1;
+   const height = maxY - minY + 1;
+
+   const cx = minX + width / 2;
+   const cy = minY + height / 2;
+
+   const newInputs = new Array(numInp).fill(0);
+
+   const shiftX = Math.round(pixel / 2 - cx);
+   const shiftY = Math.round(pixel / 2 - cy);
+
+   for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+         const val = inputs[y * pixel + x];
+         const newX = x + shiftX;
+         const newY = y + shiftY;
+
+         if (newX >= 0 && newX < pixel && newY >= 0 && newY < pixel) {
+            newInputs[newY * pixel + newX] = val;
+         }
+      }
+   }
+
+   ary = newInputs;
 }
 
 function setOutputIndex(index) {

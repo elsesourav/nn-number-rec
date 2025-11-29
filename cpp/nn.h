@@ -28,6 +28,7 @@ public:
 
    void train(const Matrix &input, const Matrix &target);
    void trainArray(const std::vector<double> &input, const std::vector<double> &target);
+   void trainBatch(const std::vector<double> &inputs, const std::vector<double> &targets, int batchSize);
 
    // Getters
    int getNumLayers() const;

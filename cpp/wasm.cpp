@@ -43,13 +43,13 @@ EMSCRIPTEN_BINDINGS(my_module) {
        .class_function("transpose", &Matrix::transpose)
        .class_function("convertFromArray", &Matrix::convertFromArray);
 
-
    class_<NeuralNetwork>("NeuralNetwork")
        .constructor<int, std::vector<int>, int, double>()
        .function("feedForward", &NeuralNetwork::feedForward)
        .function("feedForwardArray", &NeuralNetwork::feedForwardArray)
        .function("train", &NeuralNetwork::train)
        .function("trainArray", &NeuralNetwork::trainArray)
+       .function("trainBatch", &NeuralNetwork::trainBatch)
        .function("getNumLayers", &NeuralNetwork::getNumLayers)
        .function("getLayer", &NeuralNetwork::getLayer)
        .function("getWeights", &NeuralNetwork::getWeights)

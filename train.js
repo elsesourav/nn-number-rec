@@ -10,12 +10,12 @@ const OUTPUT_FILE = "model.json";
 // Configuration
 const TARGET_PIXEL = 28;
 const NUM_INP = TARGET_PIXEL * TARGET_PIXEL;
-const NUM_HID0 = 16;
-const NUM_HID1 = 16;
+const NUM_HID0 = 64;
+const NUM_HID1 = 64;
 const NUM_OUT = 10;
 const LEARNING_RATE = 0.1;
-const BATCH_SIZE = 100; // Train in batches
-const EPOCHS = 5;
+const BATCH_SIZE = 1; // Train in batches
+const EPOCHS = 3;
 
 function loadFile(baseName) {
    if (fs.existsSync(baseName + ".gz")) {
@@ -81,8 +81,7 @@ async function loadMNIST() {
       for (let j = 0; j < rows * cols; j++) {
          let val = imagesBuffer[imgOffset + j];
          let normVal = val / 255.0;
-         // Thresholding to make it "black and white" (binary)
-         normVal = normVal > 0.5 ? 1.0 : 0.0;
+         // Use grayscale (0.0 to 1.0) to match anti-aliased canvas input better
          pixels.push(normVal);
       }
       imgOffset += rows * cols;
@@ -97,6 +96,15 @@ async function loadMNIST() {
    }
 
    return { images, labels };
+}
+
+// Shuffle helper
+function shuffle(images, labels) {
+   for (let i = images.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [images[i], images[j]] = [images[j], images[i]];
+      [labels[i], labels[j]] = [labels[j], labels[i]];
+   }
 }
 
 async function main() {
@@ -119,30 +127,54 @@ async function main() {
       );
       console.log("Neural Network initialized.");
 
+      // Pre-allocate vectors for batch training to avoid GC overhead
+      const inputsVec = new wasmModule.vector1d();
+      const targetsVec = new wasmModule.vector1d();
+
+      // Resize once (fill with zeros)
+      inputsVec.resize(BATCH_SIZE * NUM_INP, 0);
+      targetsVec.resize(BATCH_SIZE * NUM_OUT, 0);
+
       // Training Loop
       console.log(`Starting training for ${EPOCHS} epochs...`);
 
       for (let epoch = 0; epoch < EPOCHS; epoch++) {
          console.log(`Epoch ${epoch + 1}/${EPOCHS}`);
 
-         for (let i = 0; i < images.length; i++) {
-            const inputVec = new wasmModule.vector1d();
-            const targetVec = new wasmModule.vector1d();
+         // Shuffle data each epoch
+         shuffle(images, labels);
 
-            images[i].forEach((v) => inputVec.push_back(v));
-            labels[i].forEach((v) => targetVec.push_back(v));
+         for (let i = 0; i < images.length; i += BATCH_SIZE) {
+            const currentBatchSize = Math.min(BATCH_SIZE, images.length - i);
 
-            nn.trainArray(inputVec, targetVec);
+            // Fill the pre-allocated vectors
+            for (let j = 0; j < currentBatchSize; j++) {
+               const idx = i + j;
+               const img = images[idx];
+               const lbl = labels[idx];
 
-            inputVec.delete();
-            targetVec.delete();
+               // Direct set is faster than push_back
+               for (let k = 0; k < NUM_INP; k++) {
+                  inputsVec.set(j * NUM_INP + k, img[k]);
+               }
+               for (let k = 0; k < NUM_OUT; k++) {
+                  targetsVec.set(j * NUM_OUT + k, lbl[k]);
+               }
+            }
 
-            if (i % 1000 === 0) {
-               process.stdout.write(`\rProcessed ${i}/${images.length} images`);
+            nn.trainBatch(inputsVec, targetsVec, currentBatchSize);
+
+            if ((i + currentBatchSize) % 1000 === 0) {
+               process.stdout.write(
+                  `\rProcessed ${i + currentBatchSize}/${images.length} images`
+               );
             }
          }
          console.log("\nEpoch complete.");
       }
+
+      inputsVec.delete();
+      targetsVec.delete();
 
       // Save Model
       console.log("Saving model...");

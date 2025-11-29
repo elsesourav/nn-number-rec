@@ -22,7 +22,7 @@ function drawNetwork(ctx, nn, width, height, progress) {
    //       ? margin + progress * (width - 2 * margin)
    //       : width;
 
-   const maxNodes = 25; // Maximum nodes to show per layer
+   const maxNodes = 30; // Maximum nodes to show per layer
 
    // Helper to get max nodes for a specific layer
    const getMaxNodesForLayer = (layerIndex) => {
