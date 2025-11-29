@@ -15,7 +15,11 @@ const hoverClass = $$(".hover");
 let offsetX,
    offsetY,
    isDraw = false;
-const cvsOffset = c.cvs.getBoundingClientRect();
+let cvsOffset = c.cvs.getBoundingClientRect();
+
+window.addEventListener("resize", () => {
+   cvsOffset = c.cvs.getBoundingClientRect();
+})
 
 c.on("click", (e) => {
    offsetX = Math.map(
@@ -135,7 +139,9 @@ inpNums.each((e, i) => {
 clearBtn.on("click", () => {
    clearBoard();
    removeClass(inpNums, "on");
-   // outputs.innerText = "?";
+
+   if (nn.resetActivations) nn.resetActivations();
+   if (window.drawNNStatic) window.drawNNStatic();
 });
 trainingBtn.on("click", () => {
    trainingBtn.classList.toggle("on");

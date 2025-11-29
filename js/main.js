@@ -92,6 +92,13 @@ createMathModule().then((module) => {
       animate();
    };
 
+   // Exposed static draw (no animation)
+   window.drawNNStatic = () => {
+      if (nn && ctxView) {
+         drawNetwork(ctxView, nn, cvsView.width, cvsView.height, -1);
+      }
+   };
+
    const lsd = getDataFromLocalStorage("sb-nn"); // (lsd) local storage data
 
    if (lsd) {
