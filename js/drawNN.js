@@ -22,9 +22,7 @@ function drawNetwork(ctx, nn, width, height, progress) {
    //       ? margin + progress * (width - 2 * margin)
    //       : width;
 
-   const maxNodes = 15; // Maximum nodes to show per layer
-
-   const nodeRadius = height / maxNodes / 2.5;
+   const maxNodes = 25; // Maximum nodes to show per layer
 
    // Helper to get max nodes for a specific layer
    const getMaxNodesForLayer = (layerIndex) => {
@@ -63,7 +61,8 @@ function drawNetwork(ctx, nn, width, height, progress) {
    const getY = (visualIndex, count, hasHidden, limit) => {
       const gapSize = 2;
       const visualTotal = hasHidden ? limit + gapSize : count;
-      const spacing = (height - 2 * margin) / (visualTotal - 1);
+      const spacing =
+         (height - 2 * margin) / (visualTotal > 1 ? visualTotal - 1 : 1);
 
       let posIndex = visualIndex;
       if (hasHidden) {
@@ -73,7 +72,25 @@ function drawNetwork(ctx, nn, width, height, progress) {
          }
       }
 
+      if (visualTotal <= 1) return height / 2;
+
       return margin + posIndex * spacing;
+   };
+
+   // Helper to calculate radius for a layer
+   const getLayerRadius = (vis) => {
+      const gapSize = 2;
+      const visualTotal = vis.hasHidden
+         ? vis.limit + gapSize
+         : vis.indices.length;
+      const spacing =
+         (height - 2 * margin) / (visualTotal > 1 ? visualTotal - 1 : 1);
+      let r = spacing / 2.5;
+
+      // Clamp max size
+      if (r > height / 12) r = height / 12;
+
+      return r;
    };
 
    ctx.clearRect(0, 0, width, height);
@@ -158,6 +175,7 @@ function drawNetwork(ctx, nn, width, height, progress) {
    for (let l = 0; l < numLayers; l++) {
       const vis = getVisibleIndices(l);
       const x = margin + l * layerSpacing;
+      const layerRadius = getLayerRadius(vis);
 
       // Find max index for output layer to highlight the winner
       let maxInd = -1;
@@ -187,11 +205,9 @@ function drawNetwork(ctx, nn, width, height, progress) {
             }
          }
 
-         let r = l === 0 ? nodeRadius * 0.6 : nodeRadius;
-         if (l === numLayers - 1) {
-            r = nodeRadius * 1.6;
-            if (r > nodeRadius * 8) r = nodeRadius * 8;
-         }
+         let r = layerRadius;
+         // Input layer slightly smaller to avoid clutter if dense
+         if (l === 0) r = layerRadius * 0.8;
 
          ctx.beginPath();
          ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -212,9 +228,7 @@ function drawNetwork(ctx, nn, width, height, progress) {
             if (val > 0.5 || (i === maxInd && val !== 0))
                ctx.fillStyle = "black";
             else ctx.fillStyle = "white";
-            ctx.font = `normal ${
-               r * 1.2
-            }px "Courier New", Courier, monospace`;
+            ctx.font = `normal ${r * 1.2}px "Courier New", Courier, monospace`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(i, x, y);

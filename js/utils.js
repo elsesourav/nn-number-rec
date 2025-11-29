@@ -616,7 +616,11 @@ const ID = (selector) => {
       self.addEventListener(event, fun);
    };
    self.click = (fun, once = false) => {
-      self.addEventListener("click", fun, { once });
+      if (typeof fun === "function") {
+         self.addEventListener("click", fun, { once });
+      } else {
+         HTMLElement.prototype.click.call(self);
+      }
    };
    self.text = (text) => (self.innerText = text);
    self.html = (html) => (self.innerText = html);
@@ -629,7 +633,11 @@ const $ = (selector) => {
       self.addEventListener(event, fun);
    };
    self.click = (fun, once = false) => {
-      self.addEventListener("click", fun, { once });
+      if (typeof fun === "function") {
+         self.addEventListener("click", fun, { once });
+      } else {
+         HTMLElement.prototype.click.call(self);
+      }
    };
    self.text = (text) => (self.innerText = text);
    self.html = (html) => (self.innerText = html);

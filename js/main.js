@@ -1,9 +1,10 @@
-const pixel = 32;
+const pixel = 28;
 const inpNums = $$(".number");
 const numInp = pixel * pixel;
-const numHid0 = 15;
-const numHid1 = 15;
+const numHid0 = 16;
+const numHid1 = 16;
 const numOut = 10;
+let pencilSize = pixel / 8;
 
 let _min_ = Math.floor(minSize / 100);
 _min_ = window.innerHeight < 600 ? _min_ * 40 : _min_ * 60;
