@@ -2,6 +2,11 @@
   "name": "number-recognition",
   "version": "2.0.0",
   "type": "module",
+  "author": {
+    "name": "Sourav Barui",
+    "email": "contact@elsesourav.com",
+    "url": "https://linkedin.com/in/souravbarui"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

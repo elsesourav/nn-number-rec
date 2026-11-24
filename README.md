@@ -231,5 +231,14 @@ npm run build:wasm
 
 ---
 
+## 📬 Contact & Author
+
+For questions, feedback, or collaboration:
+
+* **LinkedIn:** [https://linkedin.com/in/souravbarui](https://linkedin.com/in/souravbarui)
+* **Email:** [contact@elsesourav.com](mailto:contact@elsesourav.com)
+
+---
+
 ## 📄 License
 MIT License. Copyright (c) 2024-2026 Sourav Barui (elsesourav). See [LICENSE.md](LICENSE.md) for details.
