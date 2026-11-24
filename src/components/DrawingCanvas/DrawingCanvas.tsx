@@ -465,26 +465,26 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
       <div className="flex flex-col gap-2 p-3 bg-slate-900/90 rounded-xl border border-slate-800 shadow-md">
         {/* Clean Header: Simple title with no extra size text + Unified Tools */}
         <div className="flex items-center justify-between gap-1.5 min-w-0">
-          <span className="text-xs font-semibold text-slate-200 tracking-wide whitespace-nowrap">
+          <span className="text-sm font-semibold text-slate-200 tracking-wide whitespace-nowrap">
             Drawing Pad
           </span>
 
-          {/* Unified Tool Actions: Brush, Eraser, Auto-Fit, Clear */}
-          <div className="flex items-center bg-slate-950/90 p-0.5 rounded-lg border border-slate-800/80 shadow-inner gap-0.5 flex-shrink-0">
+          {/* Unified Tool Actions: Brush, Eraser, Auto-Fit, Clear (Enlarged 2-3x for mobile ergonomics) */}
+          <div className="flex items-center bg-slate-950/90 p-1 rounded-xl border border-slate-800/80 shadow-inner gap-1 flex-shrink-0">
             {/* Brush Button */}
             <button
               type="button"
               data-testid="btn-brush"
               onClick={() => setTool('brush')}
-              className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 tool === 'brush'
-                  ? 'bg-cyan-500/25 text-cyan-300 shadow-xs'
+                  ? 'bg-cyan-500/25 text-cyan-300 ring-1 ring-cyan-500/50 shadow-xs'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
               title="Brush Tool (Press B)"
             >
-              <PenTool size={12} className={tool === 'brush' ? 'text-cyan-400' : 'text-slate-400'} />
-              <span className="hidden md:inline text-[9px] font-mono font-bold text-cyan-400/80">B</span>
+              <PenTool size={19} className={tool === 'brush' ? 'text-cyan-400' : 'text-slate-400'} />
+              <span className="hidden sm:inline text-[10px] font-mono font-bold text-cyan-400/80">B</span>
             </button>
 
             {/* Eraser Button */}
@@ -492,30 +492,30 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
               type="button"
               data-testid="btn-eraser"
               onClick={() => setTool('eraser')}
-              className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 tool === 'eraser'
-                  ? 'bg-cyan-500/25 text-cyan-300 shadow-xs'
+                  ? 'bg-cyan-500/25 text-cyan-300 ring-1 ring-cyan-500/50 shadow-xs'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
               title="Eraser Tool (Press E)"
             >
-              <Eraser size={12} className={tool === 'eraser' ? 'text-cyan-400' : 'text-slate-400'} />
-              <span className="hidden md:inline text-[9px] font-mono font-bold text-cyan-400/80">E</span>
+              <Eraser size={19} className={tool === 'eraser' ? 'text-cyan-400' : 'text-slate-400'} />
+              <span className="hidden sm:inline text-[10px] font-mono font-bold text-cyan-400/80">E</span>
             </button>
 
             {/* Auto-Fit / Normalize Button: Only visible when autoFitOnDraw is DISABLED */}
             {!autoFitOnDraw && (
               <>
-                <div className="w-px h-3 bg-slate-800 mx-0.5" />
+                <div className="w-px h-4 bg-slate-800 mx-0.5" />
                 <button
                   type="button"
                   data-testid="btn-autofit"
                   onClick={autoFitDrawing}
-                  className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-cyan-300 hover:bg-slate-900 transition-all cursor-pointer active:scale-95"
+                  className="flex items-center justify-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-lg text-xs font-semibold text-slate-400 hover:text-cyan-300 hover:bg-slate-900 transition-all cursor-pointer active:scale-95"
                   title="Auto-Fit / Normalize Drawing to Standard Size (Press F)"
                 >
-                  <Maximize2 size={12} />
-                  <span className="hidden md:inline text-[9px] font-mono font-bold text-cyan-400/80">F</span>
+                  <Maximize2 size={19} />
+                  <span className="hidden sm:inline text-[10px] font-mono font-bold text-cyan-400/80">F</span>
                 </button>
               </>
             )}
@@ -525,11 +525,11 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
               type="button"
               data-testid="btn-clear"
               onClick={clearCanvas}
-              className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-slate-900 transition-all cursor-pointer active:scale-95"
+              className="flex items-center justify-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-lg text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer active:scale-95"
               title="Clear Canvas (Press C)"
             >
-              <Trash2 size={12} />
-              <span className="hidden md:inline text-[9px] font-mono font-bold text-rose-400/80">C</span>
+              <Trash2 size={19} className="text-slate-400 hover:text-rose-400" />
+              <span className="hidden sm:inline text-[10px] font-mono font-bold text-rose-400/80">C</span>
             </button>
           </div>
         </div>

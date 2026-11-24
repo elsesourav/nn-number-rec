@@ -98,6 +98,19 @@ export default function App() {
     });
   }, []);
 
+  // Automatically load pre-trained MNIST model by default on initial mount
+  const hasAutoLoadedPretrained = useRef(false);
+  useEffect(() => {
+    if (bridge && !hasAutoLoadedPretrained.current) {
+      hasAutoLoadedPretrained.current = true;
+      loadPretrained().then((success) => {
+        if (success) {
+          showToast('Pre-trained MNIST model loaded (96% accuracy)', 'info');
+        }
+      });
+    }
+  }, [bridge, loadPretrained, showToast]);
+
   const handlePixelDataChange = useCallback(
     (pixels: Float32Array) => {
       setCurrentPixels(pixels);

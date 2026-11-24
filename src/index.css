@@ -4,6 +4,31 @@
 @source "../index.html";
 @source "../src/**/*.{js,ts,jsx,tsx}";
 
+/* Overwrite any fixed-body or locked-overflow defaults from react-ui app shell */
+html,
+body {
+  position: static !important;
+  inset: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+#root {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+}
+
 @layer base {
   body {
     background-color: #030712;

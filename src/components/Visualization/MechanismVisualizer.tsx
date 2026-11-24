@@ -72,6 +72,7 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
   const prevPredictionRef = useRef<PredictionResult | null>(null);
   const prevTrainedCountRef = useRef<number>(trainingStats.samplesTrained);
   const isInitialMount = useRef<boolean>(true);
+  const isTrainingSeqRunningRef = useRef<boolean>(false);
 
   // Derived Values
   const targetDigit = currentSampleInfo?.label ?? prediction?.digit ?? 0;
@@ -370,9 +371,21 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
       window.clearTimeout(animTimeoutRef.current);
     }
 
+    if (actionType === 'train') {
+      isTrainingSeqRunningRef.current = true;
+    }
+
     setLastActionType(actionType);
-    // Smooth, observable pacing allowing energy packets to gracefully travel along the full curve
-    const stepDuration = actionType === 'train' ? 320 : 380;
+
+    // Dynamic pacing: loop curve (stage 3) and celebration (stage 7) get slightly more time
+    const getStageDuration = (stage: number) => {
+      if (actionType === 'train') {
+        if (stage === 3) return 420; // 180° loop right curve
+        if (stage === 7) return 500; // weights updated celebration flash
+        return 340; // straight forward & backward cables
+      }
+      return stage === 3 ? 420 : 360;
+    };
 
     let current = 0;
     setActiveFlowStage(0);
@@ -381,14 +394,15 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
       current++;
       if (current <= maxStage) {
         setActiveFlowStage(current);
-        animTimeoutRef.current = window.setTimeout(step, stepDuration);
+        animTimeoutRef.current = window.setTimeout(step, getStageDuration(current));
       } else {
         // Animation finished! Return to idle
         setActiveFlowStage(-1);
+        isTrainingSeqRunningRef.current = false;
       }
     };
 
-    animTimeoutRef.current = window.setTimeout(step, stepDuration);
+    animTimeoutRef.current = window.setTimeout(step, getStageDuration(0));
   }, []);
 
   // Watch for TRAIN or RECOGNIZE data events
@@ -404,13 +418,17 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
     if (trainingStats.samplesTrained !== prevTrainedCountRef.current) {
       prevTrainedCountRef.current = trainingStats.samplesTrained;
       prevPredictionRef.current = prediction;
-      triggerFlowSequence(6, 'train'); // Full loop 0..6
+      triggerFlowSequence(7, 'train'); // Full loop 0..7 (forward pass, backpropagation, and synapse weight update)
       return;
     }
 
     // 2. Check for RECOGNIZE event (prediction updated from new drawing)
     if (prediction && prediction !== prevPredictionRef.current) {
       prevPredictionRef.current = prediction;
+      // If training sequence (with backpropagation) is actively animating, DO NOT preempt it with recognize!
+      if (isTrainingSeqRunningRef.current) {
+        return;
+      }
       triggerFlowSequence(3, 'recognize'); // Forward pass 0..3 to Softmax
       return;
     }
@@ -425,7 +443,7 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
 
   // Manual Replay / Test trigger
   const handleManualReplay = () => {
-    triggerFlowSequence(6, 'train');
+    triggerFlowSequence(7, 'train');
   };
 
   // Compute Cable Paths
@@ -497,25 +515,41 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
     >
       {/* 1. TOP STATUS & FLOW TRIGGER BAR */}
       <div className="absolute top-2 left-3 z-30 pointer-events-none">
-        {/* Status Pill: Idle vs Active Flow */}
+        {/* Status Pill: Idle vs Forward vs Backprop vs Updated */}
         <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2 bg-slate-900/90 backdrop-blur-md px-2 sm:px-2.5 py-1 rounded-lg border border-slate-800 shadow-md">
           <div className="flex items-center gap-1.5 text-[10px] font-mono">
             <span
               className={`w-2 h-2 rounded-full ${
                 activeFlowStage >= 0
-                  ? 'bg-emerald-400 animate-ping'
+                  ? activeFlowStage <= 3
+                    ? 'bg-cyan-400 animate-ping'
+                    : activeFlowStage <= 6
+                    ? 'bg-rose-400 animate-ping'
+                    : 'bg-emerald-400 animate-ping'
                   : 'bg-slate-500'
               }`}
             />
             <span className="font-bold text-slate-200 hidden sm:inline">
               {activeFlowStage >= 0
                 ? lastActionType === 'train'
-                  ? 'Training Flow'
+                  ? activeFlowStage <= 3
+                    ? '1. Forward Inference'
+                    : activeFlowStage <= 6
+                    ? '2. Backpropagation & Optimizer'
+                    : '3. Synapses Updated (ΔW Applied)'
                   : 'Inference Flow'
                 : 'Pipeline Idle'}
             </span>
             <span className="font-bold text-slate-200 sm:hidden">
-              {activeFlowStage >= 0 ? 'Flowing' : 'Idle'}
+              {activeFlowStage >= 0
+                ? lastActionType === 'train'
+                  ? activeFlowStage <= 3
+                    ? 'Forward'
+                    : activeFlowStage <= 6
+                    ? 'Backprop'
+                    : 'Updated'
+                  : 'Flowing'
+                : 'Idle'}
             </span>
           </div>
 
@@ -527,7 +561,7 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
             data-testid="btn-workflow-replay"
             onClick={handleManualReplay}
             className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
-            title="Replay Animation Flow"
+            title="Replay Full Training Flow (Forward & Backtrack)"
           >
             <RotateCcw size={9} />
             <span className="hidden sm:inline">Replay</span>
@@ -593,34 +627,45 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
 
                 {/* Animated Luminous Packet (Only when active based on data!) */}
                 {isCurrentActive && (
-                  <>
+                  <g key={`packet-${cable.id}-${activeFlowStage}`}>
                     <path
                       d={pathD}
                       fill="none"
                       stroke={cable.color}
-                      strokeWidth={4}
+                      strokeWidth={4.5}
                       strokeLinecap="round"
                       strokeDasharray="16 75"
                       className="animate-flow-dash"
                       filter="url(#glow-packet)"
                     />
-                    <circle r={5} fill="#ffffff" filter="url(#glow-packet)">
+                    {/* Glowing outer aura */}
+                    <circle r={7} fill={cable.color} opacity={0.5} filter="url(#glow-packet)">
                       <animateMotion
                         path={pathD}
-                        dur={lastActionType === 'train' ? '0.32s' : '0.38s'}
+                        dur={cable.isLoopRight ? '0.42s' : lastActionType === 'train' ? '0.34s' : '0.36s'}
                         repeatCount="1"
                         fill="freeze"
                       />
                     </circle>
-                    <circle r={3} fill={cable.color} opacity={0.7} filter="url(#glow-packet)">
+                    {/* Core bright white bullet */}
+                    <circle r={4.5} fill="#ffffff" filter="url(#glow-packet)">
                       <animateMotion
                         path={pathD}
-                        dur={lastActionType === 'train' ? '0.32s' : '0.38s'}
+                        dur={cable.isLoopRight ? '0.42s' : lastActionType === 'train' ? '0.34s' : '0.36s'}
                         repeatCount="1"
                         fill="freeze"
                       />
                     </circle>
-                  </>
+                    {/* Trailing particle */}
+                    <circle r={3} fill={cable.color} opacity={0.9}>
+                      <animateMotion
+                        path={pathD}
+                        dur={cable.isLoopRight ? '0.42s' : lastActionType === 'train' ? '0.34s' : '0.36s'}
+                        repeatCount="1"
+                        fill="freeze"
+                      />
+                    </circle>
+                  </g>
                 )}
 
                 {/* Wire Data Packet Tag */}
@@ -657,21 +702,23 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
         {nodes.map((n) => {
           const isNodeActive =
             (n.id === 'node-input' && activeFlowStage === 0) ||
-            (n.id === 'node-synapse' && (activeFlowStage === 1 || activeFlowStage === 6)) ||
-            (n.id === 'node-activation' && activeFlowStage === 2) ||
-            (n.id === 'node-deep' && activeFlowStage === 3) ||
-            (n.id === 'node-softmax' && activeFlowStage === 4) ||
-            (n.id === 'node-loss' && activeFlowStage === 5) ||
-            (n.id === 'node-optimizer' && activeFlowStage === 6);
+            (n.id === 'node-synapse' && (activeFlowStage === 0 || activeFlowStage === 1 || activeFlowStage === 6 || activeFlowStage === 7)) ||
+            (n.id === 'node-activation' && (activeFlowStage === 1 || activeFlowStage === 2)) ||
+            (n.id === 'node-deep' && (activeFlowStage === 2 || activeFlowStage === 3)) ||
+            (n.id === 'node-softmax' && (activeFlowStage === 3 || activeFlowStage === 4)) ||
+            (n.id === 'node-loss' && (activeFlowStage === 4 || activeFlowStage === 5)) ||
+            (n.id === 'node-optimizer' && (activeFlowStage === 5 || activeFlowStage === 6));
 
           const isNodeRecent =
             (n.id === 'node-input' && activeFlowStage === 1) ||
-            (n.id === 'node-synapse' && (activeFlowStage === 2 || activeFlowStage === 0)) ||
+            (n.id === 'node-synapse' && activeFlowStage === 2) ||
             (n.id === 'node-activation' && activeFlowStage === 3) ||
             (n.id === 'node-deep' && activeFlowStage === 4) ||
             (n.id === 'node-softmax' && activeFlowStage === 5) ||
-            (n.id === 'node-loss' && activeFlowStage === 6);
+            (n.id === 'node-loss' && activeFlowStage === 6) ||
+            (n.id === 'node-optimizer' && activeFlowStage === 7);
 
+          const isSynapseUpdated = n.id === 'node-synapse' && activeFlowStage === 7;
           const isSelected = selectedNodeId === n.id;
 
           return (
@@ -681,6 +728,8 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
               className={`interactive-node-card absolute z-20 rounded-xl bg-slate-900/95 border transition-all duration-300 ease-out cursor-pointer flex flex-col justify-between shadow-lg backdrop-blur-md ${
                 isSelected
                   ? 'ring-2 ring-cyan-400 border-cyan-400 shadow-cyan-500/30 scale-102'
+                  : isSynapseUpdated
+                  ? 'ring-2 ring-emerald-400 border-emerald-400 shadow-emerald-500/40 scale-103 shadow-xl'
                   : isNodeActive
                   ? `${n.color.border} ring-2 ring-cyan-400/50 scale-102 shadow-lg`
                   : isNodeRecent
@@ -692,7 +741,11 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
                 top: `${n.y}px`,
                 width: `${n.width}px`,
                 height: `${n.height}px`,
-                boxShadow: isNodeActive ? `0 0 24px ${n.color.glow}` : undefined,
+                boxShadow: isSynapseUpdated
+                  ? '0 0 28px rgba(16, 185, 129, 0.6)'
+                  : isNodeActive
+                  ? `0 0 24px ${n.color.glow}`
+                  : undefined,
               }}
             >
               {/* Connector Handles */}
@@ -706,6 +759,22 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
                   isNodeActive ? 'border-emerald-400 bg-emerald-950 scale-110' : 'border-slate-600'
                 }`}
               />
+              {/* Upward feedback handle: Top on Optimizer */}
+              {n.id === 'node-optimizer' && (
+                <div
+                  className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2 bg-slate-900 transition-colors ${
+                    activeFlowStage === 6 ? 'border-fuchsia-400 bg-fuchsia-950 scale-110' : 'border-slate-600'
+                  }`}
+                />
+              )}
+              {/* Upward feedback handle: Bottom on Synapse */}
+              {n.id === 'node-synapse' && (
+                <div
+                  className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2 bg-slate-900 transition-colors ${
+                    activeFlowStage === 6 || activeFlowStage === 7 ? 'border-fuchsia-400 bg-fuchsia-950 scale-110' : 'border-slate-600'
+                  }`}
+                />
+              )}
 
               {/* Node Header */}
               <div className="px-2 py-1.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/70 rounded-t-xl">
@@ -734,12 +803,14 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
 
                 <span
                   className={`text-[8px] font-mono px-1 py-0.2 rounded border shrink-0 ${
-                    isNodeActive
+                    isSynapseUpdated
+                      ? 'bg-emerald-500/30 text-emerald-300 border-emerald-400 font-bold'
+                      : isNodeActive
                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-bold'
                       : 'bg-slate-800 text-slate-400 border-slate-700'
                   }`}
                 >
-                  {isNodeActive ? 'ACTIVE' : n.badge}
+                  {isSynapseUpdated ? 'UPDATED!' : isNodeActive ? 'ACTIVE' : n.badge}
                 </span>
               </div>
 
@@ -795,9 +866,15 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
                         </span>
                       </div>
                     </div>
-                    <div className="p-0.5 rounded bg-slate-950 border border-slate-800 text-[8.5px] font-mono text-blue-300 text-center truncate">
-                      z = W·x + b
-                    </div>
+                    {activeFlowStage === 7 ? (
+                      <div className="p-0.5 rounded bg-emerald-950/90 border border-emerald-500/80 text-[8px] font-mono text-emerald-300 text-center font-bold animate-pulse truncate shadow-xs shadow-emerald-500/30">
+                        ΔW Applied: Weights Updated!
+                      </div>
+                    ) : (
+                      <div className="p-0.5 rounded bg-slate-950 border border-slate-800 text-[8.5px] font-mono text-blue-300 text-center truncate">
+                        z = W·x + b
+                      </div>
+                    )}
                   </div>
                 )}
 
