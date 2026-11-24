@@ -4,6 +4,12 @@
   A high-performance handwritten digit recognition application powered by a <strong>C++ SIMD WebAssembly (Wasm)</strong> neural network engine, rebuilt from the ground up with <strong>React 19, Vite, TypeScript, and Tailwind CSS</strong>.
 </p>
 
+<p align="center">
+  <a href="https://nn.elsesourav.com" target="_blank">
+    <img src="https://img.shields.io/badge/Live%20Demo-nn.elsesourav.com-00DC82?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" />
+  </a>
+</p>
+
 ---
 
 ## 🚀 Key Highlights & Architectural Upgrades
