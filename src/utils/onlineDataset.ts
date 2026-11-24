@@ -71,15 +71,16 @@ export async function loadOnlineMnistDataset(): Promise<MnistSample[]> {
 
 /**
  * Dynamically adjusts MNIST pixel stroke width based on the stroke slider.
- * When strokeWidth > 36 (baseline), dilates the strokes smoothly to create a thicker pen mark.
- * When strokeWidth < 36, erodes/attenuates the edges to create a finer pen mark.
+ * Baseline stroke width is 18px (range 15px to 30px, default 18px).
+ * When strokeWidth > 18, dilates the strokes smoothly to create a thicker pen mark.
+ * When strokeWidth < 18, erodes/attenuates the edges to create a finer pen mark.
  */
 export function adjustMnistStrokeWidth(
   pixels28x28: Float32Array | number[],
-  strokeWidth: number = 36
+  strokeWidth: number = 18
 ): Float32Array {
-  // If at default baseline (36px ± 1), return direct copy
-  if (Math.abs(strokeWidth - 36) < 1) {
+  // If at default baseline (18px ± 0.5), return direct copy
+  if (Math.abs(strokeWidth - 18) < 0.5) {
     return new Float32Array(pixels28x28);
   }
 
@@ -87,9 +88,9 @@ export function adjustMnistStrokeWidth(
   const getP = (x: number, y: number): number =>
     x >= 0 && x < 28 && y >= 0 && y < 28 ? pixels28x28[y * 28 + x] : 0;
 
-  if (strokeWidth > 36) {
-    // Dilate (thicken stroke): expand mass towards neighboring pixels
-    const factor = Math.min(1.0, (strokeWidth - 36) / 24); // 0..1
+  if (strokeWidth > 18) {
+    // Dilate (thicken stroke): expand mass towards neighboring pixels (range 18..30)
+    const factor = Math.min(1.0, (strokeWidth - 18) / 12); // 0..1
     for (let y = 0; y < 28; y++) {
       for (let x = 0; x < 28; x++) {
         const cur = getP(x, y);
@@ -105,8 +106,8 @@ export function adjustMnistStrokeWidth(
       }
     }
   } else {
-    // Erode (thin stroke): attenuate faint outer edges
-    const factor = Math.min(1.0, (36 - strokeWidth) / 18); // 0..1
+    // Erode (thin stroke): attenuate faint outer edges (range 15..18)
+    const factor = Math.min(1.0, (18 - strokeWidth) / 3.5); // 0..1
     for (let y = 0; y < 28; y++) {
       for (let x = 0; x < 28; x++) {
         const cur = getP(x, y);
@@ -132,7 +133,7 @@ export function renderMnistImageToCanvas(
   width: number,
   height: number,
   pixels28x28: Float32Array | number[],
-  strokeWidth: number = 36,
+  strokeWidth: number = 18,
   renderMode: 'low_pixel' | 'smooth' = 'low_pixel'
 ): void {
   ctx.save();

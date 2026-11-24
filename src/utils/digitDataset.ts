@@ -9,7 +9,7 @@ export function renderSyntheticDigit(
   width: number,
   height: number,
   digit: number,
-  strokeWidth: number = 36,
+  strokeWidth: number = 18,
   jitterLevel: number = 0.7
 ): void {
   ctx.save();
@@ -29,8 +29,8 @@ export function renderSyntheticDigit(
   const rw = (width * 0.32) * scale;
   const rh = (height * 0.42) * scale;
 
-  // Use dynamic stroke width controlled by the stroke slider
-  const baseStroke = strokeWidth > 0 ? strokeWidth : 36;
+  // Use dynamic stroke width controlled by the stroke slider (range 15-30px, default 18px)
+  const baseStroke = strokeWidth > 0 ? strokeWidth : 18;
   const stroke = baseStroke * rnd(0.9, 1.1);
 
   ctx.lineWidth = stroke;

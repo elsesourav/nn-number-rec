@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, Pause, StepForward, Globe, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
-import { Button, ParameterSlider } from '@elsesourav/react-ui';
+import { Button } from '@elsesourav/react-ui';
+import { ParameterSlider } from '../Common/ParameterSlider';
 import type { PredictionResult } from '../../types';
 
 interface TrainingPanelProps {

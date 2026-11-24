@@ -371,7 +371,8 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
     }
 
     setLastActionType(actionType);
-    const stepDuration = actionType === 'train' ? 120 : 140;
+    // Smooth, observable pacing allowing energy packets to gracefully travel along the full curve
+    const stepDuration = actionType === 'train' ? 320 : 380;
 
     let current = 0;
     setActiveFlowStage(0);
@@ -546,6 +547,13 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
         {/* SVG LAYER: Wires and Flowing Data Packets */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-visible">
           <defs>
+            <filter id="glow-packet" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
             <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="3.5" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -577,10 +585,10 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
                   d={pathD}
                   fill="none"
                   stroke={isCurrentActive ? cable.color : '#334155'}
-                  strokeWidth={2}
+                  strokeWidth={isCurrentActive ? 2.5 : 2}
                   strokeDasharray={cable.isUpwardFeedback ? '3 3' : 'none'}
                   strokeLinecap="round"
-                  className="transition-colors duration-200"
+                  className="transition-colors duration-300"
                 />
 
                 {/* Animated Luminous Packet (Only when active based on data!) */}
@@ -592,12 +600,25 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
                       stroke={cable.color}
                       strokeWidth={4}
                       strokeLinecap="round"
-                      strokeDasharray="12 80"
+                      strokeDasharray="16 75"
                       className="animate-flow-dash"
-                      filter="url(#glow-cyan)"
+                      filter="url(#glow-packet)"
                     />
-                    <circle r={4.5} fill="#ffffff" filter="url(#glow-emerald)">
-                      <animateMotion path={pathD} dur="0.25s" repeatCount="1" />
+                    <circle r={5} fill="#ffffff" filter="url(#glow-packet)">
+                      <animateMotion
+                        path={pathD}
+                        dur={lastActionType === 'train' ? '0.32s' : '0.38s'}
+                        repeatCount="1"
+                        fill="freeze"
+                      />
+                    </circle>
+                    <circle r={3} fill={cable.color} opacity={0.7} filter="url(#glow-packet)">
+                      <animateMotion
+                        path={pathD}
+                        dur={lastActionType === 'train' ? '0.32s' : '0.38s'}
+                        repeatCount="1"
+                        fill="freeze"
+                      />
                     </circle>
                   </>
                 )}
@@ -612,8 +633,8 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
                     rx={8}
                     fill="#0f172a"
                     stroke={isCurrentActive ? cable.color : '#334155'}
-                    strokeWidth={1}
-                    className="shadow-xs"
+                    strokeWidth={isCurrentActive ? 1.5 : 1}
+                    className="shadow-xs transition-colors duration-300"
                   />
                   <text
                     textAnchor="middle"
@@ -622,6 +643,7 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
                     fontSize="8"
                     fontFamily="monospace"
                     fontWeight="bold"
+                    className="transition-colors duration-300"
                   >
                     {cable.label}
                   </text>
@@ -642,17 +664,27 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
             (n.id === 'node-loss' && activeFlowStage === 5) ||
             (n.id === 'node-optimizer' && activeFlowStage === 6);
 
+          const isNodeRecent =
+            (n.id === 'node-input' && activeFlowStage === 1) ||
+            (n.id === 'node-synapse' && (activeFlowStage === 2 || activeFlowStage === 0)) ||
+            (n.id === 'node-activation' && activeFlowStage === 3) ||
+            (n.id === 'node-deep' && activeFlowStage === 4) ||
+            (n.id === 'node-softmax' && activeFlowStage === 5) ||
+            (n.id === 'node-loss' && activeFlowStage === 6);
+
           const isSelected = selectedNodeId === n.id;
 
           return (
             <div
               key={n.id}
               onClick={() => setSelectedNodeId(n.id)}
-              className={`interactive-node-card absolute z-20 rounded-xl bg-slate-900/95 border transition-all duration-150 cursor-pointer flex flex-col justify-between shadow-lg backdrop-blur-md ${
+              className={`interactive-node-card absolute z-20 rounded-xl bg-slate-900/95 border transition-all duration-300 ease-out cursor-pointer flex flex-col justify-between shadow-lg backdrop-blur-md ${
                 isSelected
                   ? 'ring-2 ring-cyan-400 border-cyan-400 shadow-cyan-500/30 scale-102'
                   : isNodeActive
-                  ? `${n.color.border} ring-2 scale-102`
+                  ? `${n.color.border} ring-2 ring-cyan-400/50 scale-102 shadow-lg`
+                  : isNodeRecent
+                  ? `${n.color.border} ring-1 ring-cyan-500/20`
                   : 'border-slate-800/90 hover:border-slate-700'
               }`}
               style={{
@@ -660,7 +692,7 @@ export const MechanismVisualizer: React.FC<MechanismVisualizerProps> = ({
                 top: `${n.y}px`,
                 width: `${n.width}px`,
                 height: `${n.height}px`,
-                boxShadow: isNodeActive ? `0 0 20px ${n.color.glow}` : undefined,
+                boxShadow: isNodeActive ? `0 0 24px ${n.color.glow}` : undefined,
               }}
             >
               {/* Connector Handles */}

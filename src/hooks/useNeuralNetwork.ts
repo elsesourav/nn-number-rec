@@ -31,7 +31,7 @@ export function useNeuralNetwork(wasmModule: NNEngineModule | null) {
 
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
-  const [animationDuration, setAnimationDuration] = useState<number>(700);
+  const [animationDuration, setAnimationDuration] = useState<number>(1800);
   const [trainingStats, setTrainingStats] = useState<TrainingStats>({
     samplesTrained: 0,
     currentLoss: 0,
@@ -108,7 +108,7 @@ export function useNeuralNetwork(wasmModule: NNEngineModule | null) {
 
   // Inference (Predict)
   const predict = useCallback(
-    (pixels: Float32Array, triggerAnimation = true, customDuration = 700) => {
+    (pixels: Float32Array, triggerAnimation = true, customDuration = 1800) => {
       const activeBridge = bridgeRef.current;
       if (!activeBridge || activeBridge.disposed) return;
       lastPixelsRef.current = pixels;

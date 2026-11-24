@@ -7,7 +7,7 @@ import React, {
   forwardRef,
 } from 'react';
 import { PenTool, Eraser, Trash2, Sparkles, Maximize2 } from 'lucide-react';
-import { ParameterSlider } from '@elsesourav/react-ui';
+import { ParameterSlider } from '../Common/ParameterSlider';
 import { processCanvasToInput } from '../../utils/imageProcessing';
 import { renderSyntheticDigit } from '../../utils/digitDataset';
 import { renderMnistImageToCanvas, adjustMnistStrokeWidth } from '../../utils/onlineDataset';
@@ -42,13 +42,13 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
 
     const [isDrawing, setIsDrawing] = useState(false);
     const [tool, setTool] = useState<'brush' | 'eraser'>('brush');
-    const [brushSize, setBrushSize] = useState<number>(22);
+    const [brushSize, setBrushSize] = useState<number>(18);
     const [hasContent, setHasContent] = useState<boolean>(false);
     const pointsRef = useRef<Point[]>([]);
 
     // Track active sample on screen to dynamically adjust its stroke width when slider moves
     const currentSampleRef = useRef<{
-      type: 'mnist' | 'synthetic';
+      type: 'mnist' | 'synthetic' | 'hand';
       pixels?: Float32Array;
       digit?: number;
     } | null>(null);
@@ -108,11 +108,12 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
 
       const imgData = ctx.getImageData(0, 0, pixelResolution, pixelResolution);
       const pixels = new Float32Array(pixelResolution * pixelResolution);
-      let foundAny = false;
-      for (let i = 0; i < pixels.length; i++) {
-        const val = Math.max(imgData.data[i * 4], imgData.data[i * 4 + 1], imgData.data[i * 4 + 2]) / 255.0;
-        pixels[i] = val;
-        if (val > 0.05) foundAny = true;
+      const foundAny = pixels.some((v) => v > 0.05);
+      if (foundAny) {
+        currentSampleRef.current = {
+          type: 'hand',
+          pixels: new Float32Array(pixels),
+        };
       }
       setHasContent(foundAny);
       backupToOffscreen();
@@ -141,6 +142,7 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
 
       if (!foundAny) {
         setHasContent(false);
+        currentSampleRef.current = null;
         onPixelDataChange(pixels);
         return;
       }
@@ -161,7 +163,10 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
         ctx.putImageData(imgData, 0, 0);
       }
 
-      currentSampleRef.current = null;
+      currentSampleRef.current = {
+        type: 'hand',
+        pixels: new Float32Array(pixels),
+      };
       setHasContent(true);
       backupToOffscreen();
       onPixelDataChange(pixels);
@@ -275,6 +280,26 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
           drawMnistSample(sample.pixels, newSize);
         } else if (sample.type === 'synthetic' && sample.digit !== undefined) {
           drawSample(sample.digit, newSize);
+        } else if (sample.type === 'hand' && sample.pixels) {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          const adjusted = adjustMnistStrokeWidth(sample.pixels, newSize);
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(0, 0, pixelResolution, pixelResolution);
+          const imgData = ctx.createImageData(pixelResolution, pixelResolution);
+          for (let i = 0; i < adjusted.length; i++) {
+            const v = Math.round(adjusted[i] * 255);
+            imgData.data[i * 4] = v;
+            imgData.data[i * 4 + 1] = v;
+            imgData.data[i * 4 + 2] = v;
+            imgData.data[i * 4 + 3] = 255;
+          }
+          ctx.putImageData(imgData, 0, 0);
+          backupToOffscreen();
+          onPixelDataChange(adjusted);
         }
       }
     };
@@ -354,7 +379,7 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
       if (!ctx) return;
 
       ctx.fillStyle = tool === 'brush' ? '#ffffff' : '#000000';
-      const radius = Math.max(0.7, (brushSize / 240) * pixelResolution * 0.7 * (0.8 + pressure * 0.4));
+      const radius = Math.max(0.7, (brushSize / 18) * 1.4 * (0.8 + pressure * 0.4));
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fill();
@@ -385,7 +410,7 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
       const effectivePressure = (p0.pressure + p1.pressure) / 2;
 
       ctx.strokeStyle = tool === 'brush' ? '#ffffff' : '#000000';
-      const lineWidth = Math.max(1.3, (brushSize / 240) * pixelResolution * 1.4 * (0.85 + effectivePressure * 0.3));
+      const lineWidth = Math.max(1.3, (brushSize / 18) * 2.6 * (0.85 + effectivePressure * 0.3));
       ctx.lineWidth = lineWidth;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';

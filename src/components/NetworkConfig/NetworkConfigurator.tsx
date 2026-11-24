@@ -1,6 +1,7 @@
 import React from 'react';
 import { Layers, Plus, Trash2, Zap, Save, Upload, Sparkles, RotateCcw } from 'lucide-react';
-import { ParameterSlider, Button } from '@elsesourav/react-ui';
+import { Button } from '@elsesourav/react-ui';
+import { ParameterSlider } from '../Common/ParameterSlider';
 import type { NetworkConfig, LayerSpec } from '../../types';
 
 interface NetworkConfiguratorProps {

@@ -11,7 +11,7 @@ interface NetworkVisualizerProps {
 export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
   bridge,
   animating = false,
-  animationDuration = 700,
+  animationDuration = 1800,
   activeDigit = null,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -26,12 +26,17 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
       const numLayers = bridge.getNumLayers();
       if (numLayers < 2) return;
 
-      // Dynamic margins scaled to width & height
-      const marginX = Math.max(32, width * 0.08);
-      const marginYTop = Math.max(28, Math.min(40, height * 0.09));
-      const marginYBottom = Math.max(50, Math.min(64, height * 0.15));
-      const layerSpacing = (width - 2 * marginX) / (numLayers - 1);
-      const maxNodesPerLayer = Math.min(26, Math.floor((height - marginYTop - marginYBottom) / 14));
+      // Dynamic margins scaled to width & height with tight mobile optimization
+      const isNarrowMobile = width < 400;
+      const marginXLeft = isNarrowMobile ? 20 : Math.max(32, width * 0.08);
+      // Give Output layer probability tags enough space on the right (at least 38px)
+      const marginXRight = isNarrowMobile ? 38 : Math.max(36, width * 0.09);
+      // Push topmost nodes down so they NEVER collide with top floating controls (Active Flow & Switcher)
+      const marginYTop = isNarrowMobile ? 48 : Math.max(36, Math.min(44, height * 0.09));
+      const marginYBottom = isNarrowMobile ? 44 : Math.max(50, Math.min(64, height * 0.15));
+      const layerSpacing = (width - marginXLeft - marginXRight) / (numLayers - 1);
+      const availableH = height - marginYTop - marginYBottom;
+      const maxNodesPerLayer = Math.min(26, Math.floor(availableH / (isNarrowMobile ? 12 : 14)));
 
       // Helper to sample indices for dense layers (with intelligent active input pixel sampling)
       const getLayerVisualIndices = (layerIdx: number) => {
@@ -124,8 +129,8 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
         const curVis = getLayerVisualIndices(l);
         const nextVis = getLayerVisualIndices(l + 1);
 
-        const x1 = marginX + l * layerSpacing;
-        const x2 = marginX + (l + 1) * layerSpacing;
+        const x1 = marginXLeft + l * layerSpacing;
+        const x2 = marginXLeft + (l + 1) * layerSpacing;
 
         // Is this inter-layer interval currently carrying the active animation wave?
         const transStart = l / numTransitions;
@@ -199,15 +204,14 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
       // 2. Draw Neurons with Sequential Layer-to-Layer Illumination
       for (let l = 0; l < numLayers; l++) {
         const vis = getLayerVisualIndices(l);
-        const x = marginX + l * layerSpacing;
-        const availableH = height - marginYTop - marginYBottom;
+        const x = marginXLeft + l * layerSpacing;
         const isOutputLayer = l === numLayers - 1;
         const isInputLayer = l === 0;
 
         // Compact node sizes for hidden layers, dynamically scaled for output to never overlap
         const radius = isOutputLayer
-          ? Math.min(16, Math.max(8.5, availableH / 24))
-          : Math.min(6.5, Math.max(3.0, availableH / (vis.limit * 3.5)));
+          ? Math.min(13, Math.max(7.5, availableH / (isNarrowMobile ? 26 : 24)))
+          : Math.min(5.5, Math.max(2.8, availableH / (vis.limit * 3.5)));
 
         // Determine if wave has reached, is at, or has passed this layer
         // Layer l active emission starts at l / numTransitions
@@ -317,10 +321,12 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
             // Probability percentage next to the output node
             if (val > 0.02 && (layerState === 'idle' || layerState === 'ignited' || progress > 0.8)) {
               ctx.fillStyle = isWinner ? '#34d399' : '#64748b';
-              ctx.font = isWinner ? 'bold 11px monospace' : '10px monospace';
+              ctx.font = isWinner
+                ? `bold ${isNarrowMobile ? 9 : 11}px monospace`
+                : `${isNarrowMobile ? 8.5 : 10}px monospace`;
               ctx.textAlign = 'left';
               ctx.textBaseline = 'middle';
-              ctx.fillText(`${Math.round(val * 100)}%`, x + radius + 6, y);
+              ctx.fillText(`${Math.round(val * 100)}%`, x + radius + (isNarrowMobile ? 3 : 5), y);
             }
           } else if (isInputLayer) {
             // Input Layer
@@ -397,16 +403,17 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
 
         // Layer Title & Node count inside canvas boundary
         ctx.fillStyle = '#94a3b8';
-        ctx.font = '600 11px monospace';
+        ctx.font = `600 ${isNarrowMobile ? 9.5 : 11}px monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         let layerLabel = `Hidden ${l}`;
-        if (l === 0) layerLabel = 'Input';
-        if (l === numLayers - 1) layerLabel = 'Output';
-        ctx.fillText(layerLabel, x, height - 44);
+        if (isNarrowMobile) layerLabel = `H${l}`;
+        if (l === 0) layerLabel = isNarrowMobile ? 'In' : 'Input';
+        if (l === numLayers - 1) layerLabel = isNarrowMobile ? 'Out' : 'Output';
+        ctx.fillText(layerLabel, x, height - (isNarrowMobile ? 32 : 44));
         ctx.fillStyle = '#64748b';
-        ctx.font = '10px monospace';
-        ctx.fillText(`(${bridge.getLayerSize(l)})`, x, height - 30);
+        ctx.font = `${isNarrowMobile ? 8.5 : 10}px monospace`;
+        ctx.fillText(`(${bridge.getLayerSize(l)})`, x, height - (isNarrowMobile ? 20 : 30));
       }
     },
     [bridge]
