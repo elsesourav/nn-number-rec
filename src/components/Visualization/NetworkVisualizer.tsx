@@ -267,11 +267,11 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
           ctx.arc(x, y, radius, 0, Math.PI * 2);
 
           if (isOutputLayer) {
-            // Output Layer
+            // Output Layer: exactly ONE single winning neuron with the maximum output probability
+            const isWinner = i === maxOutputIdx && maxOutputVal > 0.08;
             const showWinnerGlow =
               (layerState === 'idle' || layerState === 'ignited' || (layerState === 'arriving' && progress > 0.85)) &&
-              (i === maxOutputIdx || i === activeDigit) &&
-              val > 0.04;
+              isWinner;
 
             if (showWinnerGlow) {
               ctx.fillStyle = '#10b981';
@@ -302,7 +302,6 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
             ctx.shadowBlur = 0;
 
             // Draw bold digit label
-            const isWinner = (i === maxOutputIdx || i === activeDigit) && val > 0.04;
             const digitColor = showWinnerGlow
               ? '#022c22'
               : layerState === 'resting'

@@ -367,6 +367,9 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
       canvas.setPointerCapture(e.pointerId);
       setIsDrawing(true);
       currentSampleRef.current = null;
+      if (tool === 'brush') {
+        setHasContent(true);
+      }
 
       const rect = canvas.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * pixelResolution;
@@ -387,6 +390,9 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
 
     const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (!isDrawing || disabled) return;
+      if (tool === 'brush' && !hasContent) {
+        setHasContent(true);
+      }
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -552,8 +558,8 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
             className="w-full h-full block"
           />
 
-          {!hasContent && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-600 gap-1 select-none">
+          {!hasContent && !isDrawing && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-600 gap-1 select-none transition-opacity duration-150">
               <Sparkles size={16} className="text-slate-600/70" />
               <span className="text-[10px]">Draw digit (0–9)</span>
             </div>
