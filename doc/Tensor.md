@@ -1,253 +1,136 @@
-# Tensor Class Documentation
+# Tensor & Multidimensional Architecture Documentation
 
-The `Tensor` class provides a flexible N-dimensional array container. Unlike `Matrix`, which is strictly 2D and optimized for math, `Tensor` is designed for data manipulation, supporting arbitrary dimensions and dynamic resizing along the first axis (axis 0).
+This document explains the mathematical foundations, memory layout, and operational design of **Tensors** in the Neural Network Digit Recognition engine.
 
-## how to setup in wasm cpp file
+---
+
+## 📐 1. Tensor Hierarchy in Neural Networks
+
+In modern deep learning, a **Tensor** is a geometric object that maps geometric vectors, scalars, and other tensors to an $N$-dimensional coordinate array. Within this engine, tensors of varying ranks represent model parameters, activations, and dataset samples:
+
+| Rank | Mathematical Entity | Project Implementation | Dimensionality / Shape | Examples |
+| :---: | :---: | :---: | :---: | :---: |
+| **0** | **Scalar** | `float` | $()$ | Learning rate $\alpha$, Momentum $\beta$, Loss $\mathcal{L}$ |
+| **1** | **Vector** | `std::vector<float>` / `Float32Array` | $(N)$ | Input vector $\mathbf{x} \in \mathbb{R}^{784}$, Bias $\mathbf{b} \in \mathbb{R}^{64}$, Target $\mathbf{y} \in \mathbb{R}^{10}$ |
+| **2** | **Matrix** | `Matrix` (`cpp/src/matrix.h`) | $(R \times C)$ | Synaptic weights $W^{[l]} \in \mathbb{R}^{N_{l-1} \times N_l}$, Batch inputs $\mathbf{X} \in \mathbb{R}^{B \times 784}$ |
+| **3** | **Volume** | Contiguous Batch Tensor | $(B \times H \times W)$ | Batch of 2D raw handwritten digits |
+
+---
+
+## ⚡ 2. Memory Architecture: Contiguous Strides vs. Ragged Arrays
+
+### The Problem with Nested Arrays
+Legacy neural network implementations often represented multidimensional data using nested structures such as `std::vector<std::vector<double>>` or JavaScript arrays of arrays `number[][]`.
+
+This introduces critical performance bottlenecks:
+1. **Pointer Chasing**: Every sub-array is an isolated heap allocation; reading consecutive elements requires traversing multiple pointer addresses.
+2. **Cache Misses**: Memory is scattered non-contiguously throughout RAM, evicting CPU L1/L2 cache lines (64 bytes).
+3. **No SIMD Vectorization**: Vector registers require contiguous 16-byte memory alignment to load 4 floats in a single instruction (`v128_load`).
+
+### The Modern Contiguous 1D Row-Major Solution
+The modern C++ engine flattens all $N$-dimensional tensors into a **single, contiguous 1D block** of 32-bit floats (`std::vector<float>`).
+
+#### Strided Flat Indexing Formula
+For an arbitrary $D$-dimensional tensor with shape $(S_0, S_1, \dots, S_{D-1})$, the flat 1D buffer offset for coordinate $(i_0, i_1, \dots, i_{D-1})$ is computed using **strides**:
+
+$$\text{Offset}(i_0, i_1, \dots, i_{D-1}) = \sum_{k=0}^{D-1} i_k \cdot \text{stride}_k$$
+
+Where the stride for dimension $k$ represents the number of elements skipped to advance by one unit along that axis:
+
+$$\text{stride}_k = \prod_{m=k+1}^{D-1} S_m, \quad \text{with } \text{stride}_{D-1} = 1$$
+
+#### 2D Example (Matrix of Shape $R \times C$):
+$$\text{stride}_0 = C, \quad \text{stride}_1 = 1 \implies \text{Offset}(r, c) = r \cdot C + c$$
+
+#### 3D Example (Batch of $B$ Images of Size $H \times W$):
+$$\text{stride}_0 = H \cdot W, \quad \text{stride}_1 = W, \quad \text{stride}_2 = 1$$
+$$\text{Offset}(b, h, w) = b \cdot (H \cdot W) + h \cdot W + w$$
+
+---
+
+## 🧠 3. Neural Network Tensor Flow & Dimensionality
+
+During feedforward inference and backpropagation, tensors undergo linear and non-linear transformations:
+
+```
+[Input Canvas: 28×28] 
+         │ (Flatten & Center-of-Mass)
+         ▼
+[Input Tensor x: 784 × 1]
+         │
+         ├─── Weight Matrix W[1]: [64 × 784]
+         ├─── Bias Vector b[1]:   [64 × 1]
+         ▼
+[Linear Dot Product z[1]: 64 × 1]
+         │ (Non-linear Activation: Leaky ReLU / ReLU / Sigmoid / Tanh)
+         ▼
+[Activation Tensor a[1]: 64 × 1]
+         │
+         ├─── Weight Matrix W[2]: [64 × 64]
+         ├─── Bias Vector b[2]:   [64 × 1]
+         ▼
+[Activation Tensor a[2]: 64 × 1]
+         │
+         ├─── Weight Matrix W[3]: [10 × 64]
+         ├─── Bias Vector b[3]:   [10 × 1]
+         ▼
+[Output Logits z[3]: 10 × 1]
+         │ (Softmax Normalization)
+         ▼
+[Probability Tensor ŷ: 10 × 1] ─── Target Vector y [10 × 1]
+                                        │
+                                        ▼
+                         [Cross-Entropy Loss & Residual Gradient δ: 10 × 1]
+                                        │
+                                        ▼ (Backpropagation Chain Rule)
+                         [Weight Velocity Gradients vt: 64 × 784, etc.]
+```
+
+---
+
+## 📦 4. High-Throughput Batch Tensor Training
+
+For training efficiency, the C++ engine provides a vectorized batch training interface:
+
 ```cpp
-   #include "tensor.h"
-   #include <emscripten/bind.h>
-   #include <numeric>
-   #include <vector>
-
-   using namespace emscripten;
-
-   // Bindings
-   EMSCRIPTEN_BINDINGS(my_module) {
-      class_<Tensor>("Tensor")
-      .constructor<emscripten::val>()
-      .function("getShape", &Tensor::getShape)
-      .function("getData", &Tensor::getData)
-      .function("get", select_overload<double(emscripten::val) const>(&Tensor::get))
-      .function("set", select_overload<void(emscripten::val, double)>(&Tensor::set))
-      .function("push", &Tensor::push)
-      .function("insert", &Tensor::insert)
-      .function("pop", &Tensor::pop)
-      .function("slice", select_overload<Tensor(int, int) const>(&Tensor::slice))
-      .function("slice", select_overload<Tensor(int) const>(&Tensor::slice))
-      .function("show", &Tensor::show);
-   }
+// cpp/src/neural_network.h
+float trainBatch(uintptr_t inputsPtr, uintptr_t targetsPtr, int batchSize);
 ```
 
-## Constructors
+### Parameters:
+- `inputsPtr`: Pointer to a contiguous rank-2 input tensor $\mathbf{X} \in \mathbb{R}^{B \times N_{\text{in}}}$, containing $B$ samples of flattened pixel floats.
+- `targetsPtr`: Pointer to a contiguous rank-2 one-hot target tensor $\mathbf{Y} \in \mathbb{R}^{B \times 10}$, containing $B$ target distributions.
+- `batchSize`: Batch count ($B$).
 
-
-### `new Tensor(jsArray)`
-
-Creates a new Tensor from a nested JavaScript array. The constructor recursively parses the array to determine the shape and data.
-
--  **Parameters:**
-   -  `jsArray` (Array): A nested JavaScript array (e.g., `[[1, 2], [3, 4]]`). All sub-arrays at the same level must have the same length (no ragged arrays).
--  **Example:**
-   ```javascript
-   // Create a 2x2x2 tensor (3D)
-   const t = new wasmModule.Tensor([
-      [
-         [1, 2],
-         [3, 4],
-      ],
-      [
-         [5, 6],
-         [7, 8],
-      ],
-   ]);
-   console.log(t.get([0, 0, 0])); // 1
-   t.delete();
-   ```
+### Execution:
+1. Iterates through sample slices using row stride $N_{\text{in}}$.
+2. Executes forward inference with SIMD dot products.
+3. Computes output error residuals $\boldsymbol{\delta}^{[L]} = \hat{\mathbf{y}} - \mathbf{y}$.
+4. Propagates deltas backwards through transposed weight matrices.
+5. Accumulates momentum velocities:
+   $$\mathbf{v}_t = \beta \mathbf{v}_{t-1} + (1-\beta)\alpha \nabla_W \mathcal{L}$$
+6. Updates weights in-place ($W \leftarrow W - \mathbf{v}_t$).
 
 ---
 
-## Methods
+## 🌐 5. Zero-Copy WebAssembly Bridge Interface
 
-### `getShape()`
+In `src/wasm/wasmBridge.ts`, the frontend maps JavaScript typed arrays directly over the WebAssembly linear memory heap (`HEAPF32`) using raw pointers:
 
-Returns the shape of the tensor as a C++ `vectorInt`.
+```typescript
+// Allocate flat target tensor in WebAssembly memory once
+const targetPtr = wasmModule._malloc(outputSize * Float32Array.BYTES_PER_ELEMENT);
+const targetView = new Float32Array(wasmModule.HEAPF32.buffer, targetPtr, outputSize);
 
--  **Returns:** `vectorInt` (A C++ proxy for `std::vector<int>`).
--  **Important:** You must call `.delete()` on the returned vector.
--  **Example:**
+// One-hot encode target digit into WebAssembly tensor buffer without copying
+targetView.fill(0);
+targetView[targetDigit] = 1.0;
 
-   ```javascript
-   const t = new wasmModule.Tensor([
-      [1, 2],
-      [3, 4],
-   ]);
-   const shapeVec = t.getShape();
-
-   // Iterate to read shape
-   const shape = [];
-   for (let i = 0; i < shapeVec.size(); i++) {
-      shape.push(shapeVec.get(i));
-   }
-   console.log(shape); // [2, 2]
-
-   shapeVec.delete();
-   t.delete();
-   ```
-
-### `getData()`
-
-Returns the flattened data of the tensor as a C++ `vector1d`.
-
--  **Returns:** `vector1d` (A C++ proxy for `std::vector<double>`).
--  **Important:** You must call `.delete()` on the returned vector.
--  **Example:**
-
-   ```javascript
-   const t = new wasmModule.Tensor([
-      [1, 2],
-      [3, 4],
-   ]);
-   const dataVec = t.getData();
-
-   console.log(dataVec.get(0)); // 1
-   console.log(dataVec.get(3)); // 4
-
-   dataVec.delete();
-   t.delete();
-   ```
-
-### `get(indices)`
-
-Retrieves a value from the tensor at the specified N-dimensional index.
-
--  **Parameters:**
-   -  `indices` (Array<number>): A JavaScript array of integers representing the index (e.g., `[0, 1, 2]`).
--  **Returns:** `number`
--  **Example:**
-   ```javascript
-   const t = new wasmModule.Tensor([
-      [10, 20],
-      [30, 40],
-   ]);
-   const val = t.get([1, 0]);
-   console.log(val); // 30
-   t.delete();
-   ```
-
-### `set(indices, value)`
-
-Sets the value at the specified N-dimensional index.
-
--  **Parameters:**
-   -  `indices` (Array<number>): A JavaScript array of integers representing the index.
-   -  `value` (number): The new value.
--  **Returns:** `void`
--  **Example:**
-   ```javascript
-   const t = new wasmModule.Tensor([1, 2, 3]);
-   t.set([1], 99.5);
-   console.log(t.get([1])); // 99.5
-   t.delete();
-   ```
-
-### `push(item)`
-
-Appends a new sub-tensor to the end of the tensor along the first dimension (axis 0). The `item` must match the shape of the existing sub-tensors (i.e., `shape[1:]`).
-
--  **Parameters:**
-   -  `item` (Array): A nested JavaScript array representing the sub-tensor to push.
--  **Returns:** `void`
--  **Example:**
-
-   ```javascript
-   const t = new wasmModule.Tensor([
-      [1, 2],
-      [3, 4],
-   ]); // Shape [2, 2]
-
-   // Push a new row [5, 6]
-   t.push([5, 6]);
-
-   // Shape is now [3, 2]
-   console.log(t.get([2, 0])); // 5
-   t.delete();
-   ```
-
-### `pop()`
-
-Removes the last element along the first dimension (axis 0).
-
--  **Returns:** `void`
--  **Example:**
-   ```javascript
-   const t = new wasmModule.Tensor([1, 2, 3]);
-   t.pop();
-   // Shape is now [2], data is [1, 2]
-   t.delete();
-   ```
-
-### `insert(index, item)`
-
-Inserts a new sub-tensor at the specified index along the first dimension (axis 0).
-
--  **Parameters:**
-   -  `index` (number): The index at which to insert.
-   -  `item` (Array): The nested JavaScript array to insert.
--  **Returns:** `void`
--  **Example:**
-
-   ```javascript
-   const t = new wasmModule.Tensor([
-      [1, 2],
-      [5, 6],
-   ]);
-
-   // Insert [3, 4] at index 1
-   t.insert(1, [3, 4]);
-
-   // Result: [[1, 2], [3, 4], [5, 6]]
-   console.log(t.get([1, 0])); // 3
-   t.delete();
-   ```
-
-### `slice(start, end)`
-
-Creates a new Tensor that is a slice of the original tensor along the first dimension (axis 0).
-
--  **Parameters:**
-   -  `start` (number): The starting index (inclusive).
-   -  `end` (number, optional): The ending index (exclusive). If omitted, slices to the end.
--  **Returns:** `Tensor` (A new Tensor instance).
--  **Important:** The returned Tensor is a new C++ object and must be manually deleted.
--  **Example:**
-
-   ```javascript
-   const t = new wasmModule.Tensor([10, 20, 30, 40, 50]);
-
-   // Slice from index 1 to 3 (exclusive) -> [20, 30]
-   const subTensor = t.slice(1, 3);
-
-   console.log(subTensor.get([0])); // 20
-
-   subTensor.delete();
-   t.delete();
-   ```
-
-### `show()`
-
-Prints the tensor's shape and data to the standard output. In a web browser environment, this output appears in the **developer console**.
-
--  **Returns:** `void`
--  **Example:**
-
-```javascript
-const t = new wasmModule.Tensor([1, 2, 3]);
-t.show();
-// Open your browser's developer console to see:
-// Tensor shape: [3], size: 3
-t.delete();
+// Execute C++ training directly on memory addresses
+const loss = nn.train(inputBufferPtr, targetPtr);
 ```
 
----
-
-## Memory Management
-
-Like `Matrix`, `Tensor` instances are C++ objects.
-
-**You must manually delete Tensor instances when they are no longer needed.**
-
-```javascript
-const t = new wasmModule.Tensor([...]);
-// ...
-t.delete();
-```
+### Benefits:
+- **Zero Overhead**: No serialization, JSON parsing, or garbage collection spikes.
+- **Maximum Frame Rate**: Visualizer and training loops run at a stable 60 FPS.
+- **Memory Safety**: Buffer boundaries are verified; memory growth events automatically refresh heap array views.

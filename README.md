@@ -38,9 +38,22 @@
 * **MNIST-Standard Centering:** Computes center-of-mass $(\bar{x}, \bar{y})$ and shifts the drawn digit to the center of the grid.
 * **Live Centered Preview:** An offscreen downscaled thumbnail shows the exact $N\times N$ matrix input the neural network sees.
 
-### 4. Interactive Visualization & Model Persistence
-* **Live Feedforward Flow:** Animated visualizer rendering network connections, color-coded weights (green for positive, purple for negative), and animated feedforward activation pulses.
-* **Model Storage:** Save and load models to browser `localStorage`, export/import full JSON models, and load bundled pre-trained weights.
+### 4. Dual Visualization Modes: Graph & Mechanism Preview
+* **Interactive Network Graph (`Graph`):** Live animated canvas rendering nodes, color-coded synaptic weights (emerald for $+$, fuchsia for $-$), and layer-by-layer feedforward pulses proportional to activations.
+* **Step-by-Step Mechanism Preview (`Mechanism`):** Interactive pedagogical walkthrough decomposing the neural network computation into a 7-step sequential pipeline:
+  1. *Input Vectorization & Normalization* ($\mathbf{x} \in \mathbb{R}^{784 \times 1}$).
+  2. *Linear Transformation / Synaptic Weights & Biases* ($\mathbf{z}^{[1]} = W^{[1]}\mathbf{x} + \mathbf{b}^{[1]}$).
+  3. *Non-Linear Activation Function* ($f(z)$ SVG curve plot & derivative $f'(z)$ matching active configuration).
+  4. *Deep Hidden Layer Propagation* ($\mathbf{z}^{[l]} = W^{[l]}\mathbf{a}^{[l-1]} + \mathbf{b}^{[l]}$).
+  5. *Output Layer & Softmax Probability Distribution* ($\hat{y} = \text{Softmax}(\mathbf{z}^{[L]})$).
+  6. *Categorical Cross-Entropy Loss & Residual Error Gradient* ($\delta^{[L]} = \hat{\mathbf{y}} - \mathbf{y}$).
+  7. *Backpropagation with Momentum Gradient Descent* ($W \leftarrow W - \mathbf{v}_t$).
+  * Completed steps shrink into compact pill badges with checkmarks (`✓`), with playback controls (`Prev`, `Auto Play`, `Next`, `Reset`) and configurable study speeds (`Slow`, `Normal`, `Fast`).
+
+### 5. Unified Drawer & Model Persistence
+* **Slide-Over Right Drawer:** Clean, unified top-right header trigger with seamless tabs between **Architecture & Hyperparameters** and **Model Storage**.
+* **Model Storage & Presets:** Save/load custom snapshots in browser `localStorage`, export/import full JSON models, and load bundled pre-trained weights.
+* **Debounced Auto-Fit:** Automatically normalizes and centers drawn strokes with a configurable debounce delay or manual fallback button.
 
 ---
 
@@ -66,7 +79,8 @@ number-recognition/
 │   │   ├── NetworkConfig/
 │   │   │   └── NetworkConfigurator.tsx# Dynamic N-layer architecture editor
 │   │   ├── Visualization/
-│   │   │   └── NetworkVisualizer.tsx  # Dynamic SVG/Canvas live network graph
+│   │   │   ├── NetworkVisualizer.tsx  # Dynamic SVG/Canvas live network graph
+│   │   │   └── MechanismVisualizer.tsx# Step-by-step math & mechanism pipeline
 │   │   ├── Training/
 │   │   │   └── TrainingPanel.tsx      # Probability bars, numpad training, loss
 │   │   └── ModelManager/
@@ -77,7 +91,8 @@ number-recognition/
 │   │   └── useNeuralNetwork.ts        # Network lifecycle, training, and inference hook
 │   │
 │   ├── utils/
-│   │   └── imageProcessing.ts         # Downscaling, thresholding, and center-of-mass shift
+│   │   ├── imageProcessing.ts         # Downscaling, thresholding, and center-of-mass shift
+│   │   └── onlineDataset.ts           # Online MNIST dataset stream loader
 │   │
 │   ├── wasm/
 │   │   ├── types.ts                   # TypeScript interfaces for WASM API
@@ -88,9 +103,13 @@ number-recognition/
 │   ├── types/
 │   │   └── index.ts                   # App-wide TypeScript definitions
 │   │
-│   ├── App.tsx                        # Master layout & tabs
+│   ├── App.tsx                        # Master layout & dual visualizer mode
 │   ├── main.tsx                       # React application entry point
-│   └── index.css                      # Tailwind CSS v4 styling
+│   └── index.css                      # Tailwind CSS v4 styling + KaTeX
+│
+├── doc/                               # Architectural & Linear Algebra Documentation
+│   ├── Matrix.md                      # C++ SIMD 1D flat-matrix operations & memory layout
+│   └── Tensor.md                      # Multidimensional tensor strides & batch training
 │
 ├── public/
 │   ├── wasm/
@@ -149,4 +168,4 @@ npm run build:wasm
 ---
 
 ## 📄 License
-MIT License.
+MIT License. Copyright (c) 2024-2026 Sourav Barui (elsesourav). See [LICENSE.md](LICENSE.md) for details.
