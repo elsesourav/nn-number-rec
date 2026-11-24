@@ -12,6 +12,63 @@
   <a href="https://nn.elsesourav.com" target="_blank">
     <img src="https://img.shields.io/badge/Live%20Demo-nn.elsesourav.com-00DC82?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" />
   </a>
+  &nbsp;
+  <img src="https://img.shields.io/badge/React-19.3-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 19" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/WebAssembly-SIMD128-654FF0?style=for-the-badge&logo=webassembly&logoColor=white" alt="Wasm SIMD" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/Tailwind-v4-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind v4" />
+</p>
+
+<p align="center">
+  <img src="docs-assets/demo-drawing-inference.gif" alt="Real-time Handwritten Digit Recognition & Feedforward Visualization" width="100%" />
+</p>
+
+---
+
+## 🎬 Interactive Demonstrations
+
+### 1. Interactive Digit Drawing & Instant Neural Inference
+Draw digits with anti-aliased Bézier smoothing, dynamic pressure sensitivity, and automatic center-of-mass alignment. The zero-copy WebAssembly C++ engine computes forward propagation probabilities in real time with animated activation pulses across layers.
+
+<p align="center">
+  <img src="docs-assets/demo-drawing-inference.gif" alt="Drawing & Real-Time Inference" width="100%" />
+</p>
+
+---
+
+### 2. Live Dataset Training Studio & Error Backpropagation
+Stream real MNIST samples or train on custom handwritten drawings. Watch backpropagated gradient error waves update synaptic weights across layers in real time with momentum descent.
+
+<p align="center">
+  <img src="docs-assets/demo-dataset-training.gif" alt="Live Dataset Training & Backpropagation" width="100%" />
+</p>
+
+---
+
+### 3. Step-by-Step Mechanism Computation Pipeline
+Inspect the neural network execution as an interactive pedagogical computation graph: input vectorization, affine transformations ($\mathbf{z} = W\mathbf{x} + \mathbf{b}$), activation functions, hidden layer propagation, Softmax probability distribution, categorical cross-entropy loss, and momentum gradient optimization.
+
+<p align="center">
+  <img src="docs-assets/demo-mechanism-pipeline.gif" alt="Mechanism Pipeline & Computation Graph" width="100%" />
+</p>
+
+---
+
+### 4. Dynamic N-Layer Topology Configurator & Model Presets
+Dynamically add or remove hidden layers, adjust neuron counts per layer (8 to 512 nodes), change input grid resolution, and adjust hyperparameters (learning rate, momentum, activation function) on the fly. Save snapshots directly to `localStorage`, export/import JSON models, or load pre-trained weights.
+
+<p align="center">
+  <img src="docs-assets/demo-architecture-drawer.gif" alt="Architecture Configurator & Model Storage Drawer" width="100%" />
+</p>
+
+---
+
+### 5. Multi-Device & Mobile Responsiveness
+Fully responsive layout adapting seamlessly from wide desktop workstations to mobile and tablet screens with touch/stylus support.
+
+<p align="center">
+  <img src="docs-assets/screenshot-mobile.png" alt="Mobile Viewport Preview" width="420" />
 </p>
 
 ---
@@ -110,6 +167,13 @@ number-recognition/
 ├── doc/                               # Architectural & Linear Algebra Documentation
 │   ├── Matrix.md                      # C++ SIMD 1D flat-matrix operations & memory layout
 │   └── Tensor.md                      # Multidimensional tensor strides & batch training
+│
+├── docs-assets/                       # Visual demonstrations & documentation assets
+│   ├── demo-drawing-inference.gif     # Interactive drawing & live inference
+│   ├── demo-dataset-training.gif      # Dataset training studio & backpropagation
+│   ├── demo-mechanism-pipeline.gif    # Computation graph pipeline walkthrough
+│   ├── demo-architecture-drawer.gif   # Dynamic N-layer topology & presets
+│   └── screenshot-mobile.png          # Responsive mobile layout preview
 │
 ├── public/
 │   ├── wasm/

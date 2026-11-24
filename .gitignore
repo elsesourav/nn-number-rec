@@ -16,7 +16,11 @@ dist-ssr
 .env.production.local
 *.env
 
-# Large MNIST training binary data (keep in local storage, not in git/vercel)
+# Large Video & Screen Recordings (GIFs are committed for README)
+*.mov
+*.mp4
+*.mkv
+*.avi
 train-images-idx3-ubyte
 train-images-idx3-ubyte.gz
 train-labels-idx1-ubyte
