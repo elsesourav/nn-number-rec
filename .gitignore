@@ -1,0 +1,42 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Production build
+dist
+dist-ssr
+*.local
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Large MNIST training binary data (keep in local storage, not in git/vercel)
+train-images-idx3-ubyte
+train-images-idx3-ubyte.gz
+train-labels-idx1-ubyte
+train-labels-idx1-ubyte.gz
+
+# Vercel & Deployments
+.vercel
+
+# Editor & OS files
+.vscode
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <!-- add theme color for mobile browser header -->
+      <meta name="theme-color" content="#151520" />
+      <!-- add favicon -->
+      <link rel="icon" href="./src/favicon.png" type="image/png" />
+      <title>Number Recognize Wasm</title>
+      <link rel="stylesheet" href="css/style.css" />
+
+      <script defer src="./wasmJs/wasm.js"></script>
+      <script defer src="./js/utils.js"></script>
+      <script defer src="./js/drawNN.js"></script>
+      <script defer src="./js/main.js"></script>
+      <script defer src="./js/event.js"></script>
+   </head>
+   <body>
+      <div id="menu-icon">
+         <span></span>
+         <span></span>
+         <span></span>
+      </div>
+      <main>
+         <div id="options">
+            <div class="title">OPTIONS</div>
+            <div class="ranges">
+               <div class="row">
+                  <!-- <label for="speed">Learning Rate</label> -->
+                  <input
+                     type="range"
+                     value="0.99"
+                     id="learn-rate"
+                     max="4"
+                     min="0.01"
+                     step="0.01"
+                  />
+                  <span>
+                     <p id="lr-show">0.99</p>
+                     <b>&nbsp;Learning Rate</b>
+                  </span>
+               </div>
+            </div>
+            <div class="buttons">
+               <input
+                  type="button"
+                  class="btn hover"
+                  value="SAVE YOUR TRAIN MODEL"
+                  id="save"
+               />
+               <input
+                  type="button"
+                  class="btn hover"
+                  value="LOAD PRE TRAIN MODEL"
+                  id="load-json-btn"
+               />
+               <input
+                  type="file"
+                  id="load-json-input"
+                  accept=".json"
+                  style="display: none"
+               />
+               <input
+                  type="button"
+                  class="btn hover"
+                  value="CLEAR TRAIN MODEL"
+                  id="reset"
+               />
+            </div>
+         </div>
+      </main>
+      <div id="app-content">
+         <div id="view-cvs"></div>
+         <div id="cvs"></div>
+         <div class="view">
+            <div class="inputs">
+               <button class="btn hover" id="clear">CLEAR</button>
+               <button class="btn hover" id="training">NUMPAD</button>
+            </div>
+            <div id="num-btn">
+               <button class="number btn hover">0</button>
+               <button class="number btn hover">1</button>
+               <button class="number btn hover">2</button>
+               <button class="number btn hover">3</button>
+               <button class="number btn hover">4</button>
+               <button class="number btn hover">5</button>
+               <button class="number btn hover">6</button>
+               <button class="number btn hover">7</button>
+               <button class="number btn hover">8</button>
+               <button class="number btn hover">9</button>
+            </div>
+            <div id="train"><button class="btn train hover">TRAIN</button></div>
+         </div>
+      </div>
+      <div id="toast">Network Saved!</div>
+   </body>
+</html>
