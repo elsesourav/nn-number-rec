@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layers, Plus, Trash2, Zap, Save, Upload, Sparkles, RotateCcw } from 'lucide-react';
+import { ParameterSlider, Button } from '@elsesourav/react-ui';
 import type { NetworkConfig, LayerSpec } from '../../types';
 
 interface NetworkConfiguratorProps {
@@ -190,49 +191,39 @@ export const NetworkConfigurator: React.FC<NetworkConfiguratorProps> = ({
         </div>
       </div>
 
-      {/* 4. Hyperparameters in Single Compact Row */}
-      <div className="grid grid-cols-2 gap-2 bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 text-[11px]">
+      {/* 4. Hyperparameters with ParameterSlider from @elsesourav/react-ui */}
+      <div className="flex flex-col gap-2.5 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60 text-[11px]">
         {/* LR */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between text-slate-400 text-[10px]">
-            <span>Learning Rate:</span>
-            <span className="font-mono text-cyan-400 font-semibold">{config.learningRate.toFixed(2)}</span>
-          </div>
-          <input
-            type="range"
-            min={0.01}
-            max={1.5}
-            step={0.01}
-            value={config.learningRate}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              onConfigChange({ ...config, learningRate: val });
-              onLearningRateChange(val);
-            }}
-            className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-400"
-          />
-        </div>
+        <ParameterSlider
+          label="Learning Rate"
+          value={config.learningRate}
+          onChange={(val) => {
+            onConfigChange({ ...config, learningRate: val });
+            onLearningRateChange(val);
+          }}
+          min={0.01}
+          max={1.5}
+          step={0.01}
+          ticks={7}
+          format={(v) => v.toFixed(2)}
+          className="w-full bg-slate-950 border-slate-800"
+        />
 
         {/* Momentum */}
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between text-slate-400 text-[10px]">
-            <span>Momentum:</span>
-            <span className="font-mono text-cyan-400 font-semibold">{config.momentum.toFixed(2)}</span>
-          </div>
-          <input
-            type="range"
-            min={0.0}
-            max={0.98}
-            step={0.02}
-            value={config.momentum}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              onConfigChange({ ...config, momentum: val });
-              onMomentumChange(val);
-            }}
-            className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-400"
-          />
-        </div>
+        <ParameterSlider
+          label="Momentum"
+          value={config.momentum}
+          onChange={(val) => {
+            onConfigChange({ ...config, momentum: val });
+            onMomentumChange(val);
+          }}
+          min={0.0}
+          max={0.98}
+          step={0.02}
+          ticks={7}
+          format={(v) => v.toFixed(2)}
+          className="w-full bg-slate-950 border-slate-800"
+        />
 
         {/* Activation */}
         <div className="col-span-2 flex items-center justify-between pt-1 border-t border-slate-800/60">
@@ -271,6 +262,26 @@ export const NetworkConfigurator: React.FC<NetworkConfiguratorProps> = ({
             }`}
           >
             {config.useBias ? 'Enabled (ON)' : 'Disabled (OFF)'}
+          </button>
+        </div>
+
+        {/* Auto-Fit After Drawing Toggle */}
+        <div className="col-span-2 flex items-center justify-between pt-1.5 border-t border-slate-800/60">
+          <div className="flex flex-col">
+            <span className="text-slate-300 text-[10px] font-medium">Auto-Fit on Draw:</span>
+            <span className="text-[9px] text-slate-500">Auto-center & scale digit after drawing</span>
+          </div>
+          <button
+            type="button"
+            data-testid="toggle-autofit"
+            onClick={() => onConfigChange({ ...config, autoFitOnDraw: config.autoFitOnDraw === false ? true : false })}
+            className={`px-2.5 py-0.5 rounded-md text-[10px] font-mono border transition-all cursor-pointer ${
+              config.autoFitOnDraw !== false
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-bold shadow-sm shadow-cyan-500/20'
+                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+            }`}
+          >
+            {config.autoFitOnDraw !== false ? 'Enabled (ON)' : 'Disabled (OFF)'}
           </button>
         </div>
       </div>

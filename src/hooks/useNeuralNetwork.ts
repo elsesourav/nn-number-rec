@@ -19,6 +19,7 @@ const DEFAULT_CONFIG: NetworkConfig = {
   hiddenActivation: 'leaky_relu',
   outputActivation: 'softmax',
   useBias: true,
+  autoFitOnDraw: true,
 };
 
 export function useNeuralNetwork(wasmModule: NNEngineModule | null) {

@@ -1,15 +1,14 @@
 import React, { useRef, useState } from 'react';
+import { useToast } from '@elsesourav/react-ui';
 import {
   Save,
   Download,
   Upload,
   RotateCcw,
   Sparkles,
-  Check,
   Trash2,
   Bookmark,
   Layers,
-  ArrowRight,
 } from 'lucide-react';
 import type { SerializedModel } from '../../wasm/types';
 import type { SavedPreset, NetworkConfig } from '../../types';
@@ -44,13 +43,16 @@ export const ModelManager: React.FC<ModelManagerProps> = ({
   disabled = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoadingPretrained, setIsLoadingPretrained] = useState(false);
   const [presetNameInput, setPresetNameInput] = useState('');
+  const { addToast } = useToast();
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+  const showToast = (msg: string, type: 'info' | 'success' | 'warning' | 'error' = 'success') => {
+    addToast({
+      title: msg,
+      type,
+      duration: 2500,
+    });
   };
 
   const handleSaveNamed = (e: React.FormEvent) => {
@@ -118,11 +120,6 @@ export const ModelManager: React.FC<ModelManagerProps> = ({
           <Bookmark size={15} className="text-cyan-400" />
           Model Storage & Presets
         </span>
-        {toastMessage && (
-          <span className="text-emerald-400 font-medium animate-pulse flex items-center gap-1 text-[11px]">
-            <Check size={12} /> {toastMessage}
-          </span>
-        )}
       </div>
 
       {/* 2. Save Custom Named Preset */}
@@ -308,12 +305,7 @@ export const ModelManager: React.FC<ModelManagerProps> = ({
         <button
           type="button"
           disabled={disabled}
-          onClick={() => {
-            if (confirm('Are you sure you want to randomize all weights and biases?')) {
-              onResetWeights();
-              showToast('Weights randomized!');
-            }
-          }}
+          onClick={onResetWeights}
           className="col-span-2 flex items-center justify-center gap-1.5 py-1 px-3 rounded-xl text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/20 text-[11px] transition-all cursor-pointer"
         >
           <RotateCcw size={11} />

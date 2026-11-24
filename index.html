@@ -2,10 +2,108 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#090d16" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    
+    <!-- Primary Meta Tags -->
     <title>Neural Network Digit Recognition | WASM + React</title>
+    <meta name="title" content="Neural Network Digit Recognition | WASM + React" />
+    <meta
+      name="description"
+      content="High-performance handwritten digit recognition engine running an accelerated C++ SIMD 128-bit WebAssembly (Wasm) neural network in real-time inside your browser with React 19."
+    />
+    <meta
+      name="keywords"
+      content="neural network, handwritten digit recognition, mnist, webassembly, wasm, simd, c++, machine learning, deep learning, react 19, vite, typescript, ai visualizer, interactive training, digit recognizer"
+    />
+    <meta name="author" content="Sourav (elsesourav)" />
+    <meta name="creator" content="elsesourav" />
+    <meta name="publisher" content="elsesourav" />
+    <link rel="canonical" href="https://nn.elsesourav.com/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+    <!-- Favicon & Touch Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Theme & Mobile App Appearance -->
+    <meta name="theme-color" content="#090d16" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#090d16" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NeuralDigit" />
+    <meta name="application-name" content="Neural Digit Recognizer" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Open Graph / Facebook / LinkedIn / Discord -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://nn.elsesourav.com/" />
+    <meta property="og:site_name" content="Neural Digit Recognizer" />
+    <meta property="og:title" content="Neural Network Digit Recognition | WASM + React" />
+    <meta
+      property="og:description"
+      content="High-performance handwritten digit recognition engine running an accelerated C++ SIMD 128-bit WebAssembly (Wasm) neural network in real-time inside your browser."
+    />
+    <meta property="og:image" content="https://nn.elsesourav.com/og-image.png" />
+    <meta property="og:image:secure_url" content="https://nn.elsesourav.com/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Neural Network Digit Recognition App Preview" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://nn.elsesourav.com/" />
+    <meta name="twitter:title" content="Neural Network Digit Recognition | WASM + React" />
+    <meta
+      name="twitter:description"
+      content="High-performance handwritten digit recognition engine running an accelerated C++ SIMD 128-bit WebAssembly (Wasm) neural network in real-time inside your browser."
+    />
+    <meta name="twitter:image" content="https://nn.elsesourav.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Neural Network Digit Recognition App Preview" />
+    <meta name="twitter:site" content="@elsesourav" />
+    <meta name="twitter:creator" content="@elsesourav" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Neural Digit Recognizer",
+        "alternateName": ["Neural Network Digit Recognition", "ES Neural Recognizer"],
+        "url": "https://nn.elsesourav.com/",
+        "logo": "https://nn.elsesourav.com/logo.png",
+        "image": "https://nn.elsesourav.com/og-image.png",
+        "description": "Interactive handwritten digit recognition engine running an accelerated C++ SIMD 128-bit WebAssembly neural network in real-time inside your browser with React 19.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "All modern browsers (Chrome, Edge, Safari, Firefox)",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Sourav",
+          "url": "https://github.com/elsesourav"
+        },
+        "featureList": [
+          "C++ SIMD 128-bit WebAssembly Neural Engine",
+          "Real-time Handwritten Digit Recognition",
+          "Dynamic N-Layer Neural Network Architecture",
+          "Live Animated Feedforward & Backpropagation Visualizer",
+          "Online MNIST Dataset Streaming & Synthetic Training",
+          "Pressure-Sensitive Smooth Canvas Drawing"
+        ]
+      }
+    </script>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased min-h-screen selection:bg-cyan-500/30 selection:text-cyan-300">
     <div id="root"></div>

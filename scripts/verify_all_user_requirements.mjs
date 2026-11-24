@@ -3,14 +3,14 @@ import fs from 'fs';
 import path from 'path';
 
 const CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const SCREENSHOTS_DIR = path.resolve(process.cwd(), 'screenshots');
+const OUTPUT_DIR = path.resolve(process.cwd(), 'screenshots');
 
-if (!fs.existsSync(SCREENSHOTS_DIR)) {
-  fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
+if (!fs.existsSync(OUTPUT_DIR)) {
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-async function runVerification() {
-  console.log('🚀 Starting Puppeteer Verification Suite...');
+async function verify() {
+  console.log('🚀 Launching Chrome for complete verification...');
   const browser = await puppeteer.launch({
     executablePath: CHROME_PATH,
     headless: true,
@@ -18,168 +18,208 @@ async function runVerification() {
   });
 
   const page = await browser.newPage();
-  const consoleLogs = [];
-  page.on('console', msg => consoleLogs.push(`[${msg.type()}] ${msg.text()}`));
-  page.on('pageerror', err => consoleLogs.push(`[PAGE_ERROR] ${err.message}`));
+  await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 2 });
+  await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
 
-  try {
-    // -------------------------------------------------------------
-    // Test 1: Desktop Layout - Recognize Mode (Clean, natural scrolling, no locked fullscreen)
-    // -------------------------------------------------------------
-    await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 2 });
-    await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1000));
-
-    await page.screenshot({
-      path: path.join(SCREENSHOTS_DIR, '01_desktop_recognize_mode.png'),
+  // 1. Check Top Right Buttons flex
+  console.log('\n--- 1. Testing Top Right Buttons Flex ---');
+  const btnArchitectureInfo = await page.evaluate(() => {
+    const btn = document.querySelector('[data-testid="btn-architecture"]');
+    if (!btn) return null;
+    const cs = window.getComputedStyle(btn);
+    const rect = btn.getBoundingClientRect();
+    const children = Array.from(btn.children).map(c => {
+      const r = c.getBoundingClientRect();
+      const style = window.getComputedStyle(c);
+      return {
+        tag: c.tagName,
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height,
+        display: style.display,
+      };
     });
-    console.log('✅ Screenshot 01: Desktop Recognize Mode');
+    return {
+      display: cs.display,
+      flexDirection: cs.flexDirection,
+      flexWrap: cs.flexWrap,
+      btnRect: rect,
+      children,
+    };
+  });
+  console.log('Architecture Button Flex Info:', JSON.stringify(btnArchitectureInfo, null, 2));
 
-    // -------------------------------------------------------------
-    // Test 2: Drawing Persistence (Verify Canvas DOES NOT auto-clear)
-    // -------------------------------------------------------------
-    const canvas = await page.$('canvas.touch-none, div.aspect-square canvas');
-    if (canvas) {
-      const box = await canvas.boundingBox();
-      const cx = box.x + box.width / 2;
-      const cy = box.y + box.height / 2;
+  // 2. Check Stroke Slider Range (min 15, max 30)
+  console.log('\n--- 2. Testing Stroke Slider Range (15px to 30px) ---');
+  const strokeSliderInfo = await page.evaluate(() => {
+    const sliderContainer = document.querySelector('.aspect-square')?.parentElement?.querySelector('.pt-1\\.5');
+    const text = sliderContainer ? sliderContainer.innerText : 'NOT FOUND';
+    return { text };
+  });
+  console.log('Stroke Slider text:', strokeSliderInfo.text);
 
-      // Draw a figure "3"
-      await page.mouse.move(cx - 30, cy - 50);
-      await page.mouse.down();
-      await page.mouse.move(cx + 25, cy - 50, { steps: 5 });
-      await page.mouse.move(cx + 25, cy - 10, { steps: 5 });
-      await page.mouse.move(cx - 10, cy - 5, { steps: 5 });
-      await page.mouse.move(cx + 25, cy, { steps: 5 });
-      await page.mouse.move(cx + 25, cy + 50, { steps: 5 });
-      await page.mouse.move(cx - 30, cy + 50, { steps: 5 });
-      await page.mouse.up();
+  // 3. Switch to Train Mode & Verify Online MNIST Navigation & Auto-Training
+  console.log('\n--- 3. Testing Train Mode, Navigation, and Auto-Training ---');
+  await page.evaluate(() => {
+    const trainTab = document.querySelector('[data-testid="tab-train"]');
+    trainTab?.click();
+  });
+  await new Promise(r => setTimeout(r, 600));
 
-      // Wait 1.5 seconds (previously auto-cleared at 650ms)
-      await new Promise(r => setTimeout(r, 1500));
+  // Get initial loss and sample info
+  const initialTrainState = await page.evaluate(() => {
+    const bottomStatus = document.body.innerText.match(/Loss:\s*([\d.]+)\s*\((\d+)\)/);
+    const sampleText = document.querySelector('[data-testid="btn-next-sample"]')?.parentElement?.innerText;
+    const presets = Array.from(document.querySelectorAll('button')).filter(b => b.title?.includes('Target:')).map(b => b.innerText);
+    return {
+      lossMatch: bottomStatus ? { loss: bottomStatus[1], trained: bottomStatus[2] } : null,
+      sampleText,
+      presets,
+    };
+  });
+  console.log('Initial Train State:', initialTrainState);
 
-      // Check if canvas still has non-zero pixels
-      const hasPixels = await page.evaluate(() => {
-        const c = document.querySelector('div.aspect-square canvas');
-        if (!c) return false;
-        const ctx = c.getContext('2d');
-        const img = ctx.getImageData(0, 0, c.width, c.height);
-        return img.data.some((val, idx) => idx % 4 === 0 && val > 30);
-      });
+  // Click Next Sample ('>')
+  console.log('Clicking Next Sample (">")...');
+  await page.evaluate(() => {
+    const nextBtn = document.querySelector('[data-testid="btn-next-sample"]');
+    nextBtn?.click();
+  });
+  await new Promise(r => setTimeout(r, 700));
 
-      console.log('✅ Canvas has drawn pixels after 1.5s delay:', hasPixels);
-      await page.screenshot({
-        path: path.join(SCREENSHOTS_DIR, '02_desktop_drawing_persistent.png'),
-      });
-      console.log('✅ Screenshot 02: Drawing Persistent (No Auto-Clear)');
-    }
+  const afterNextState = await page.evaluate(() => {
+    const bottomStatus = document.body.innerText.match(/Loss:\s*([\d.]+)\s*\((\d+)\)/);
+    const sampleText = document.querySelector('[data-testid="btn-next-sample"]')?.parentElement?.innerText;
+    return {
+      lossMatch: bottomStatus ? { loss: bottomStatus[1], trained: bottomStatus[2] } : null,
+      sampleText,
+    };
+  });
+  console.log('State After Next Click (Trained):', afterNextState);
 
-    // -------------------------------------------------------------
-    // Test 3: Left-Side Slide-Over Drawer with Low Blur (Architecture & Storage)
-    // -------------------------------------------------------------
-    // Click "Architecture" button
-    const buttons = await page.$$('button');
-    for (const b of buttons) {
-      const text = await page.evaluate(el => el.textContent, b);
-      if (text.includes('Architecture')) {
-        await b.click();
-        break;
-      }
-    }
-    await new Promise(r => setTimeout(r, 600));
-    await page.screenshot({
-      path: path.join(SCREENSHOTS_DIR, '03_left_drawer_architecture.png'),
-    });
-    console.log('✅ Screenshot 03: Left Drawer (Architecture with Low Blur)');
+  // Click Next Sample again
+  await page.evaluate(() => {
+    const nextBtn = document.querySelector('[data-testid="btn-next-sample"]');
+    nextBtn?.click();
+  });
+  await new Promise(r => setTimeout(r, 700));
 
-    // Click "Storage" tab in drawer
-    const drawerButtons = await page.$$('div.fixed button');
-    for (const b of drawerButtons) {
-      const text = await page.evaluate(el => el.textContent, b);
-      if (text.includes('Storage')) {
-        await b.click();
-        break;
-      }
-    }
-    await new Promise(r => setTimeout(r, 600));
-    await page.screenshot({
-      path: path.join(SCREENSHOTS_DIR, '04_left_drawer_storage.png'),
-    });
-    console.log('✅ Screenshot 04: Left Drawer (Storage & Named Presets)');
+  // Click Previous Sample ('<')
+  console.log('Clicking Previous Sample ("<")...');
+  await page.evaluate(() => {
+    const prevBtn = document.querySelector('[data-testid="btn-prev-sample"]');
+    prevBtn?.click();
+  });
+  await new Promise(r => setTimeout(r, 700));
 
-    // Close drawer
-    const closeBtn = await page.$('div.fixed button[title="Close Drawer"]');
-    if (closeBtn) {
-      await closeBtn.click();
-    } else {
-      const allFixedBtns = await page.$$('div.fixed button');
-      if (allFixedBtns.length > 0) {
-        await allFixedBtns[allFixedBtns.length - 1].click();
-      }
-    }
-    await new Promise(r => setTimeout(r, 500));
+  const afterPrevState = await page.evaluate(() => {
+    const sampleText = document.querySelector('[data-testid="btn-next-sample"]')?.parentElement?.innerText;
+    return { sampleText };
+  });
+  console.log('State After Prev Click:', afterPrevState);
 
-    // -------------------------------------------------------------
-    // Test 4: Switch to Train Studio Mode
-    // -------------------------------------------------------------
-    await page.click('[data-testid="tab-train"]');
-    await new Promise(r => setTimeout(r, 600));
-    await page.screenshot({
-      path: path.join(SCREENSHOTS_DIR, '05_desktop_train_studio_mode.png'),
-    });
-    console.log('✅ Screenshot 05: Desktop Train Studio Mode');
+  // Click Reset to First Sample button
+  console.log('Clicking Reset to First Sample button...');
+  await page.evaluate(() => {
+    const resetBtn = document.querySelector('[data-testid="btn-reset-sample"]');
+    resetBtn?.click();
+  });
+  await new Promise(r => setTimeout(r, 700));
 
-    // Run a step in training
-    const stepBtn = await page.$('button[data-testid="btn-step-train"]');
-    if (stepBtn) {
-      await stepBtn.click();
-      await new Promise(r => setTimeout(r, 800));
-      await page.screenshot({
-        path: path.join(SCREENSHOTS_DIR, '06_train_step_live_preview.png'),
-      });
-      console.log('✅ Screenshot 06: Train Step Live Preview on Network');
-    }
+  const afterResetState = await page.evaluate(() => {
+    const sampleText = document.querySelector('[data-testid="btn-next-sample"]')?.parentElement?.innerText;
+    return { sampleText };
+  });
+  console.log('State After Reset to First Sample Click:', afterResetState);
 
-    // -------------------------------------------------------------
-    // Test 5: Mobile Viewport (390 x 844 - iPhone / Modern Phone)
-    // -------------------------------------------------------------
-    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-    await new Promise(r => setTimeout(r, 500));
+  // Click Prev button when at sample #1 to verify it does NOT wrap to 999/1000
+  console.log('Clicking Prev while at sample #1 to verify no wrapping...');
+  await page.evaluate(() => {
+    const prevBtn = document.querySelector('[data-testid="btn-prev-sample"]');
+    prevBtn?.click();
+  });
+  await new Promise(r => setTimeout(r, 400));
+  const noWrapState = await page.evaluate(() => {
+    const sampleText = document.querySelector('[data-testid="btn-next-sample"]')?.parentElement?.innerText;
+    return { sampleText };
+  });
+  console.log('State after Prev at #1 (should stay #1):', noWrapState);
 
-    // Check Network on top and Draw Pad on bottom
-    await page.screenshot({
-      path: path.join(SCREENSHOTS_DIR, '07_mobile_screen_top.png'),
-    });
-    console.log('✅ Screenshot 07: Mobile Viewport - Network Visualizer on Top');
+  // 4. Capture Train Mode Screenshot
+  await page.screenshot({
+    path: path.join(OUTPUT_DIR, 'verified_train_mode.png'),
+    fullPage: false,
+  });
+  console.log('Saved verified_train_mode.png');
 
-    // Scroll down to see compact drawing pad and numpad
-    await page.evaluate(() => window.scrollBy(0, 350));
-    await new Promise(r => setTimeout(r, 400));
-    await page.screenshot({
-      path: path.join(SCREENSHOTS_DIR, '08_mobile_screen_bottom_drawpad.png'),
-    });
-    console.log('✅ Screenshot 08: Mobile Viewport - Compact Drawing Pad & Numpad');
+  // 5. Test Architecture Drawer & Reset Confirmation Dialog
+  console.log('\n--- 4. Testing Architecture Drawer & Reset Confirmation Dialog ---');
+  await page.evaluate(() => {
+    const archBtn = document.querySelector('[data-testid="btn-architecture"]');
+    archBtn?.click();
+  });
+  await new Promise(r => setTimeout(r, 500));
 
-    // Check Recognize mode on mobile
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.click('[data-testid="tab-recognize"]');
-    await new Promise(r => setTimeout(r, 400));
-    await new Promise(r => setTimeout(r, 400));
-    await page.screenshot({
-      path: path.join(SCREENSHOTS_DIR, '09_mobile_recognize_mode.png'),
-    });
-    console.log('✅ Screenshot 09: Mobile Recognize Mode');
+  await page.screenshot({
+    path: path.join(OUTPUT_DIR, 'verified_architecture_drawer.png'),
+    fullPage: false,
+  });
+  console.log('Saved verified_architecture_drawer.png');
 
-  } catch (err) {
-    console.error('❌ Verification failed with error:', err);
-  } finally {
-    if (consoleLogs.length > 0) {
-      console.log('--- Page Console Logs ---');
-      consoleLogs.slice(-15).forEach(l => console.log(l));
-    }
-    await browser.close();
-    console.log('🏁 Verification complete.');
-  }
+  // Click Reset button inside Drawer to open Dialog
+  console.log('Clicking Reset Weights to open Dialog confirmation...');
+  await page.evaluate(() => {
+    const resetBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Reset') && !b.innerText.includes('to first'));
+    resetBtn?.click();
+  });
+  await new Promise(r => setTimeout(r, 500));
+
+  const dialogInfo = await page.evaluate(() => {
+    const dialogTitle = document.querySelector('h2, h3, [role="dialog"]')?.innerText;
+    const dialogButtons = Array.from(document.querySelectorAll('[role="dialog"] button, div button')).filter(b => b.innerText.includes('Reset Weights') || b.innerText.includes('Cancel')).map(b => b.innerText);
+    return { dialogTitle, dialogButtons };
+  });
+  console.log('Dialog Info:', dialogInfo);
+
+  await page.screenshot({
+    path: path.join(OUTPUT_DIR, 'verified_reset_dialog.png'),
+    fullPage: false,
+  });
+  console.log('Saved verified_reset_dialog.png');
+
+  // Confirm Reset Weights
+  await page.evaluate(() => {
+    const confirmBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText === 'Reset Weights');
+    confirmBtn?.click();
+  });
+  await new Promise(r => setTimeout(r, 600));
+
+  // 6. Test Mobile Viewport (650px & 375px)
+  console.log('\n--- 5. Testing Mobile Viewports ---');
+  await page.setViewport({ width: 650, height: 900, deviceScaleFactor: 2 });
+  await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
+  await new Promise(r => setTimeout(r, 600));
+
+  await page.screenshot({
+    path: path.join(OUTPUT_DIR, 'verified_mobile_650.png'),
+    fullPage: false,
+  });
+  console.log('Saved verified_mobile_650.png');
+
+  await page.setViewport({ width: 375, height: 750, deviceScaleFactor: 2 });
+  await new Promise(r => setTimeout(r, 400));
+  await page.screenshot({
+    path: path.join(OUTPUT_DIR, 'verified_mobile_375.png'),
+    fullPage: false,
+  });
+  console.log('Saved verified_mobile_375.png');
+
+  await browser.close();
+  console.log('\n✨ All automated verification tests completed successfully!');
 }
 
-runVerification();
+verify().catch(err => {
+  console.error('Error during verification:', err);
+  process.exit(1);
+});

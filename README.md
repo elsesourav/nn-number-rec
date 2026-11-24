@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/logo.png" alt="Neural Network Digit Recognition" width="140" height="140" />
+</p>
+
 <h1 align="center">🧠 Neural Network Number Recognition (WASM + React)</h1>
 
 <p align="center">

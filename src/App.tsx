@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Sliders, Database, X, Check, PenTool, Zap, Sparkles } from 'lucide-react';
-import { Button, Badge } from '@elsesourav/react-ui';
+import { Sliders, Database, X, PenTool, Zap, Sparkles } from 'lucide-react';
+import { Button, Badge, Dialog, useToast } from '@elsesourav/react-ui';
 import { useWasmModule } from './hooks/useWasmModule';
 import { useNeuralNetwork } from './hooks/useNeuralNetwork';
 import {
@@ -48,7 +48,9 @@ export default function App() {
 
   // Floating Side Drawer State ('architecture' | 'storage' | null)
   const [drawerTab, setDrawerTab] = useState<'architecture' | 'storage' | null>(null);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [activeDrawerTab, setActiveDrawerTab] = useState<'architecture' | 'storage'>('architecture');
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState<boolean>(false);
+  const { addToast } = useToast();
 
   const [currentPixels, setCurrentPixels] = useState<Float32Array>(
     new Float32Array(config.inputSize)
@@ -70,10 +72,16 @@ export default function App() {
   const currentTrainDigitRef = useRef<number>(0);
   const liveTrainTimerRef = useRef<number | null>(null);
 
-  const showToast = (msg: string) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 2500);
-  };
+  const showToast = useCallback(
+    (msg: string, type: 'info' | 'success' | 'warning' | 'error' = 'success') => {
+      addToast({
+        title: msg,
+        type,
+        duration: 2500,
+      });
+    },
+    [addToast]
+  );
 
   // Fetch online MNIST dataset on initialization
   useEffect(() => {
@@ -152,32 +160,54 @@ export default function App() {
     [bridge, train, targetSamples, datasetSource, onlineSamples]
   );
 
-  // Preview an online sample on canvas without training
-  const showSampleOnCanvas = useCallback(
-    (idx: number) => {
+  // Train & display a specific online sample on canvas with synaptic animation
+  const trainAndDisplaySample = useCallback(
+    (idx: number, animDuration = 400) => {
       if (!drawingRef.current || onlineSamples.length === 0) return;
       const sample = onlineSamples[idx];
       if (!sample) return;
+
       setCurrentSampleInfo({ id: idx, label: sample.label });
       const pixels = drawingRef.current.drawMnistSample(sample.pixels);
       setCurrentPixels(pixels);
+
+      // Actively train WASM neural network on this sample!
+      train(pixels, sample.label, animDuration);
     },
-    [onlineSamples]
+    [onlineSamples, train]
   );
 
   const handleNextSample = useCallback(() => {
     if (onlineSamples.length === 0) return;
     const nextIdx = (mnistIndexRef.current + 1) % onlineSamples.length;
     mnistIndexRef.current = nextIdx;
-    showSampleOnCanvas(nextIdx);
-  }, [onlineSamples, showSampleOnCanvas]);
+    trainAndDisplaySample(nextIdx, 400);
+    setBatchTrained((prev) => (targetSamples !== Infinity ? Math.min(targetSamples, prev + 1) : prev + 1));
+    const sample = onlineSamples[nextIdx];
+    showToast(`Trained sample #${nextIdx + 1} (Digit ${sample?.label})`, 'success');
+  }, [onlineSamples, trainAndDisplaySample, targetSamples, showToast]);
 
   const handlePrevSample = useCallback(() => {
     if (onlineSamples.length === 0) return;
-    const prevIdx = (mnistIndexRef.current - 1 + onlineSamples.length) % onlineSamples.length;
+    if (mnistIndexRef.current <= 0) {
+      showToast('Already at the first sample (#1)', 'info');
+      return;
+    }
+    const prevIdx = mnistIndexRef.current - 1;
     mnistIndexRef.current = prevIdx;
-    showSampleOnCanvas(prevIdx);
-  }, [onlineSamples, showSampleOnCanvas]);
+    trainAndDisplaySample(prevIdx, 400);
+    setBatchTrained((prev) => Math.max(0, prev - 1));
+    const sample = onlineSamples[prevIdx];
+    showToast(`Trained sample #${prevIdx + 1} (Digit ${sample?.label})`, 'info');
+  }, [onlineSamples, trainAndDisplaySample, showToast]);
+
+  const handleResetToFirst = useCallback(() => {
+    if (onlineSamples.length === 0) return;
+    mnistIndexRef.current = 0;
+    trainAndDisplaySample(0, 400);
+    setBatchTrained(0);
+    showToast('Reset to first sample (#1)', 'info');
+  }, [onlineSamples, trainAndDisplaySample, showToast]);
 
   const handleToggleDatasetSource = useCallback(() => {
     setDatasetSource((prev) => {
@@ -336,86 +366,77 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-300">
-      {/* Toast Notification */}
-      {toastMsg && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 rounded-full bg-slate-900/90 backdrop-blur-md border border-emerald-500/50 shadow-2xl flex items-center gap-1.5 text-xs text-emerald-300 font-medium animate-in fade-in slide-in-from-top-2 duration-150">
-          <Check size={12} className="text-emerald-400" />
-          <span>{toastMsg}</span>
-        </div>
-      )}
-
       {/* Modern Responsive App Header (Clean & not locked to full screen) */}
       <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 px-3 sm:px-6 py-2.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          {/* Title & Tech Badges */}
+          {/* Title, Logo & Tech Badges */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <h1 className="text-sm sm:text-base font-bold text-slate-100 tracking-tight whitespace-nowrap">
-              Neural Digit Recognizer
-            </h1>
-            <Badge variant="primary" size="sm" className="hidden sm:inline-flex text-[10px] font-mono">
-              SIMD128 C++ WASM
-            </Badge>
+            <img
+              src="/logo.png"
+              alt="Neural Digit Recognizer"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-contain bg-slate-950/80 border border-cyan-500/40 p-0.5 shadow-sm shadow-cyan-500/20 shrink-0 select-none"
+            />
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-sm sm:text-base font-bold text-slate-100 tracking-tight whitespace-nowrap">
+                Neural Digit Recognizer
+              </h1>
+              <Badge variant="primary" size="sm" className="hidden sm:inline-flex text-[10px] font-mono">
+                SIMD128 C++ WASM
+              </Badge>
+            </div>
           </div>
 
           {/* Mode Switcher: Recognize vs Train */}
-          <div className="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-xs shadow-inner">
-            <button
-              type="button"
+          <div className="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-xs shadow-inner gap-0.5">
+            <Button
+              size="sm"
+              variant={viewMode === 'recognize' ? 'primary' : 'ghost'}
               data-testid="tab-recognize"
               onClick={() => setViewMode('recognize')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+              leftIcon={<PenTool size={12} className="shrink-0" />}
+              className={`h-7 px-2.5 text-xs font-semibold rounded-md inline-flex items-center gap-1.5 whitespace-nowrap [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.5 cursor-pointer ${
                 viewMode === 'recognize'
-                  ? 'bg-cyan-500/20 text-cyan-300 shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
               title="Recognize drawn digits in real-time"
             >
-              <PenTool size={12} />
               <span>Recognize</span>
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === 'train' ? 'primary' : 'ghost'}
               data-testid="tab-train"
               onClick={() => setViewMode('train')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+              leftIcon={<Zap size={12} className="shrink-0" />}
+              className={`h-7 px-2.5 text-xs font-semibold rounded-md inline-flex items-center gap-1.5 whitespace-nowrap [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.5 cursor-pointer ${
                 viewMode === 'train'
-                  ? 'bg-cyan-500/20 text-cyan-300 shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
               title="Train neural network with dataset"
             >
-              <Zap size={12} />
               <span>Train</span>
-            </button>
+            </Button>
           </div>
 
-          {/* Right Drawer Triggers */}
-          <div className="flex items-center gap-1.5">
+          {/* Right Header Trigger: Single Unified Button for Architecture & Storage */}
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               data-testid="btn-architecture"
-              onClick={() => setDrawerTab((prev) => (prev === 'architecture' ? null : 'architecture'))}
-              className="text-xs h-7.5 px-2.5 text-slate-300 hover:text-white border-slate-800 bg-slate-900 cursor-pointer"
-              title="Configure Network Architecture"
+              onClick={() => setDrawerTab((prev) => (prev ? null : activeDrawerTab))}
+              leftIcon={<Sliders size={13} className="text-cyan-400 shrink-0" />}
+              style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap' }}
+              className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs h-8 px-3 text-slate-200 hover:text-white border-slate-800 bg-slate-900/90 hover:bg-slate-800 cursor-pointer [&>span]:inline-flex [&>span]:flex-row [&>span]:items-center [&>span]:gap-1.5"
+              title="Architecture & Model Storage"
             >
-              <Sliders size={12} className="mr-1 text-cyan-400" />
-              <span className="hidden sm:inline">Architecture</span>
-              <span className="text-[10px] text-cyan-300 font-mono ml-1 px-1 py-0.2 rounded bg-cyan-950 border border-cyan-800/40">
+              <span className="hidden sm:inline">Architecture & Storage</span>
+              <span className="sm:hidden">Model</span>
+              <span className="text-[10px] text-cyan-300 font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/50">
                 {calculateTotalParams().toLocaleString()}
               </span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              data-testid="btn-storage"
-              onClick={() => setDrawerTab((prev) => (prev === 'storage' ? null : 'storage'))}
-              className="text-xs h-7.5 px-2.5 text-slate-300 hover:text-white border-slate-800 bg-slate-900 cursor-pointer"
-              title="Model Storage & Presets"
-            >
-              <Database size={12} className="mr-1 text-emerald-400" />
-              <span className="hidden sm:inline">Storage</span>
             </Button>
           </div>
         </div>
@@ -432,6 +453,7 @@ export default function App() {
                 <DrawingCanvas
                   ref={drawingRef}
                   pixelResolution={config.pixelResolution}
+                  autoFitOnDraw={config.autoFitOnDraw !== false}
                   onPixelDataChange={handlePixelDataChange}
                   onClear={() => {
                     setCurrentPixels(new Float32Array(config.inputSize));
@@ -490,6 +512,7 @@ export default function App() {
                   currentSampleInfo={currentSampleInfo}
                   onPrevSample={handlePrevSample}
                   onNextSample={handleNextSample}
+                  onResetToFirst={handleResetToFirst}
                   showTrainingControls={true}
                   showNumpad={false}
                   disabled={!bridge}
@@ -499,6 +522,7 @@ export default function App() {
                 <DrawingCanvas
                   ref={drawingRef}
                   pixelResolution={config.pixelResolution}
+                  autoFitOnDraw={config.autoFitOnDraw !== false}
                   onPixelDataChange={handlePixelDataChange}
                   onClear={() => {
                     setCurrentPixels(new Float32Array(config.inputSize));
@@ -527,13 +551,18 @@ export default function App() {
           {/* RIGHT/TOP COLUMN: Neural Network Visualizer (Order-1 on mobile, Order-2 on desktop) */}
           <div className="order-1 md:order-2 flex-1 min-w-0 h-[320px] sm:h-[380px] md:h-auto md:min-h-[500px] relative flex flex-col rounded-2xl border border-slate-800/80 bg-slate-950/80 overflow-hidden shadow-xl">
             {/* Legend & Mode Status */}
-            <div className="absolute top-2.5 left-3 z-20 pointer-events-none flex items-center gap-3 text-[10px] font-mono text-slate-400 bg-slate-900/70 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-slate-800/60">
-              <span className="text-slate-300 font-semibold font-sans">Active Flow</span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-0.5 bg-emerald-400 rounded"></span> +Weight
+            <div className="absolute top-2.5 left-3 z-20 pointer-events-none flex items-center gap-3 text-[10px] font-mono text-slate-300 bg-slate-900/80 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-slate-800/80 shadow-sm">
+              <span className="flex items-center gap-1.5 font-semibold text-slate-200 font-sans">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Active Flow
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-0.5 bg-purple-400 rounded"></span> -Weight
+              <span className="flex items-center gap-1.5 text-slate-400">
+                <span className="w-3.5 h-1 bg-emerald-400 rounded-full shadow-[0_0_6px_rgba(52,211,153,0.8)]"></span>
+                <span className="text-emerald-300 font-medium">+Weight</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-slate-400">
+                <span className="w-3.5 h-1 bg-fuchsia-400 rounded-full shadow-[0_0_6px_rgba(232,121,249,0.8)]"></span>
+                <span className="text-fuchsia-300 font-medium">-Weight</span>
               </span>
             </div>
 
@@ -562,24 +591,27 @@ export default function App() {
         </div>
       </main>
 
-      {/* SLIDE-OVER SIDE DRAWER: Opens from the LEFT with reduced blur */}
+      {/* SLIDE-OVER SIDE DRAWER: Opens from the RIGHT side */}
       {drawerTab !== null && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex justify-start">
+        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
           {/* Subtle Backdrop with less blur */}
           <div
             className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
             onClick={() => setDrawerTab(null)}
           />
 
-          {/* Sliding Panel from the Left */}
-          <div className="relative w-full sm:max-w-[400px] h-full bg-slate-900 border-r border-slate-700/80 shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
+          {/* Sliding Panel from the Right */}
+          <div className="relative w-full sm:max-w-[400px] h-full bg-slate-900 border-l border-slate-700/80 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200">
             {/* Drawer Top Navigation & Close Button */}
             <div className="flex items-center justify-between p-2.5 border-b border-slate-800 bg-slate-950/80">
               <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-xs">
                 <button
                   type="button"
                   data-testid="drawer-tab-architecture"
-                  onClick={() => setDrawerTab('architecture')}
+                  onClick={() => {
+                    setDrawerTab('architecture');
+                    setActiveDrawerTab('architecture');
+                  }}
                   className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md font-medium transition-all cursor-pointer ${
                     drawerTab === 'architecture'
                       ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
@@ -592,7 +624,10 @@ export default function App() {
                 <button
                   type="button"
                   data-testid="drawer-tab-storage"
-                  onClick={() => setDrawerTab('storage')}
+                  onClick={() => {
+                    setDrawerTab('storage');
+                    setActiveDrawerTab('storage');
+                  }}
                   className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md font-medium transition-all cursor-pointer ${
                     drawerTab === 'storage'
                       ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
@@ -641,10 +676,7 @@ export default function App() {
                     showToast(ok ? 'Pretrained model loaded!' : 'Failed to load pretrained');
                     return ok;
                   }}
-                  onResetWeights={() => {
-                    resetWeights();
-                    showToast('Weights randomized!');
-                  }}
+                  onResetWeights={() => setIsResetConfirmOpen(true)}
                   disabled={!wasmModule}
                 />
               )}
@@ -672,10 +704,7 @@ export default function App() {
                       showToast(ok ? 'Pretrained loaded!' : 'Load failed');
                       return ok;
                     }}
-                    onResetWeights={() => {
-                      resetWeights();
-                      showToast('Weights randomized!');
-                    }}
+                    onResetWeights={() => setIsResetConfirmOpen(true)}
                     namedPresets={namedPresets}
                     onSaveNamedPreset={(name) => {
                       const p = saveNamedPreset(name);
@@ -700,6 +729,38 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* Confirmation Dialog for Resetting / Randomizing Weights */}
+      <Dialog
+        isOpen={isResetConfirmOpen}
+        onClose={() => setIsResetConfirmOpen(false)}
+        title="Reset & Randomize Weights?"
+        description="This will re-initialize all layer weights and biases to random values using Xavier/He normal distribution. Current training progress will be lost."
+        maxWidth="sm"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full pt-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setIsResetConfirmOpen(false)}
+              className="text-xs text-slate-400 hover:text-slate-200"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                resetWeights();
+                setIsResetConfirmOpen(false);
+                showToast('Weights & biases reset to random!', 'info');
+              }}
+              className="text-xs bg-rose-600 hover:bg-rose-500 text-white border-rose-500 shadow-xs"
+            >
+              Reset Weights
+            </Button>
+          </div>
+        }
+      />
     </div>
   );
 }

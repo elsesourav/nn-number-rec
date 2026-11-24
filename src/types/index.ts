@@ -13,6 +13,7 @@ export interface NetworkConfig {
   hiddenActivation: 'sigmoid' | 'relu' | 'leaky_relu' | 'tanh';
   outputActivation: 'sigmoid' | 'softmax';
   useBias: boolean; // Option to enable or disable layer biases
+  autoFitOnDraw?: boolean; // Automatically center & normalize digit after drawing
 }
 
 export interface PredictionResult {

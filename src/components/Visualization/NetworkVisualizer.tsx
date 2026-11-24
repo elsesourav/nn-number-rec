@@ -151,14 +151,15 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
 
-            // Emerald for positive weight, Purple for negative weight
+            // Emerald for positive weight (+Weight), Fuchsia for negative weight (-Weight)
+            // Stroke line width scales dynamically with connection weight magnitude
             if (w > 0) {
-              ctx.strokeStyle = `rgba(34, 197, 94, ${alpha})`;
+              ctx.strokeStyle = `rgba(16, 185, 129, ${alpha})`;
             } else {
-              ctx.strokeStyle = `rgba(168, 85, 247, ${alpha})`;
+              ctx.strokeStyle = `rgba(217, 70, 239, ${alpha})`;
             }
 
-            ctx.lineWidth = 0.65;
+            ctx.lineWidth = Math.min(2.0, 0.6 + Math.abs(w) * 1.1);
             ctx.stroke();
 
             // Real weight & activation based light-up: only glow if actual non-zero signal passes!
@@ -170,24 +171,24 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
               const tx = x1 + (x2 - x1) * tailProg;
               const ty = y1 + (y2 - y1) * tailProg;
 
-              const beamAlpha = Math.min(0.95, 0.4 + signal * 1.5);
-              const beamWidth = Math.min(2.5, 0.9 + signal * 2.2);
+              const beamAlpha = Math.min(0.98, 0.45 + signal * 1.6);
+              const beamWidth = Math.min(3.4, 1.2 + signal * 2.6);
 
               // Glowing signal beam trail
               ctx.beginPath();
               ctx.moveTo(tx, ty);
               ctx.lineTo(px, py);
-              ctx.strokeStyle = w > 0 ? `rgba(52, 211, 153, ${beamAlpha})` : `rgba(192, 132, 252, ${beamAlpha})`;
+              ctx.strokeStyle = w > 0 ? `rgba(52, 211, 153, ${beamAlpha})` : `rgba(232, 121, 249, ${beamAlpha})`;
               ctx.lineWidth = beamWidth;
               ctx.stroke();
 
               // Photon head with halo proportional to signal strength
-              const headRadius = Math.min(3.2, 1.4 + signal * 2.0);
+              const headRadius = Math.min(3.8, 1.6 + signal * 2.2);
               ctx.beginPath();
               ctx.arc(px, py, headRadius, 0, Math.PI * 2);
               ctx.fillStyle = '#ffffff';
-              ctx.shadowColor = w > 0 ? '#34d399' : '#c084fc';
-              ctx.shadowBlur = Math.min(10, 4 + signal * 8);
+              ctx.shadowColor = w > 0 ? '#10b981' : '#e879f9';
+              ctx.shadowBlur = Math.min(12, 5 + signal * 9);
               ctx.fill();
               ctx.shadowBlur = 0;
             }

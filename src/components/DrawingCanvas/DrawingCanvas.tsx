@@ -7,7 +7,7 @@ import React, {
   forwardRef,
 } from 'react';
 import { PenTool, Eraser, Trash2, Sparkles, Maximize2 } from 'lucide-react';
-import { ParameterSlider, Button } from '@elsesourav/react-ui';
+import { ParameterSlider } from '@elsesourav/react-ui';
 import { processCanvasToInput } from '../../utils/imageProcessing';
 import { renderSyntheticDigit } from '../../utils/digitDataset';
 import { renderMnistImageToCanvas, adjustMnistStrokeWidth } from '../../utils/onlineDataset';
@@ -25,6 +25,7 @@ interface DrawingCanvasProps {
   onPixelDataChange: (pixels: Float32Array) => void;
   onClear?: () => void;
   disabled?: boolean;
+  autoFitOnDraw?: boolean; // When true: automatically auto-fit after drawing with debounce
 }
 
 interface Point {
@@ -34,13 +35,14 @@ interface Point {
 }
 
 export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
-  ({ pixelResolution = 28, onPixelDataChange, onClear, disabled = false }, ref) => {
+  ({ pixelResolution = 28, onPixelDataChange, onClear, disabled = false, autoFitOnDraw = true }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const offscreenRef = useRef<HTMLCanvasElement | null>(null);
+    const autoFitTimerRef = useRef<number | null>(null);
 
     const [isDrawing, setIsDrawing] = useState(false);
     const [tool, setTool] = useState<'brush' | 'eraser'>('brush');
-    const [brushSize, setBrushSize] = useState<number>(24);
+    const [brushSize, setBrushSize] = useState<number>(22);
     const [hasContent, setHasContent] = useState<boolean>(false);
     const pointsRef = useRef<Point[]>([]);
 
@@ -118,7 +120,7 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
       return pixels;
     }, [pixelResolution, onPixelDataChange, backupToOffscreen]);
 
-    // Explicit Auto-fit & center hand drawing when user clicks [F]
+    // Explicit Auto-fit & center hand drawing when user clicks [F] or via autoFitOnDraw
     const autoFitDrawing = useCallback(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -128,6 +130,20 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
         centeringMethod: 'centerOfMass',
         autoFitSides: true,
       });
+
+      let foundAny = false;
+      for (let i = 0; i < pixels.length; i++) {
+        if (pixels[i] > 0.05) {
+          foundAny = true;
+          break;
+        }
+      }
+
+      if (!foundAny) {
+        setHasContent(false);
+        onPixelDataChange(pixels);
+        return;
+      }
 
       // Render centered normalized pixels onto canvas
       const ctx = canvas.getContext('2d');
@@ -152,6 +168,11 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
     }, [pixelResolution, onPixelDataChange, backupToOffscreen]);
 
     const clearCanvas = useCallback(() => {
+      if (autoFitTimerRef.current) {
+        clearTimeout(autoFitTimerRef.current);
+        autoFitTimerRef.current = null;
+      }
+
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -313,6 +334,11 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
       const canvas = canvasRef.current;
       if (!canvas) return;
 
+      if (autoFitTimerRef.current) {
+        clearTimeout(autoFitTimerRef.current);
+        autoFitTimerRef.current = null;
+      }
+
       canvas.setPointerCapture(e.pointerId);
       setIsDrawing(true);
       currentSampleRef.current = null;
@@ -386,9 +412,29 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
       }
       setIsDrawing(false);
       pointsRef.current = [];
-      // Sync pixels on end of stroke - NEVER auto-clear!
-      syncProcessedPixels();
+
+      if (autoFitOnDraw) {
+        // Debounce auto-fit normalization so multi-stroke digits settle before auto-fit and prediction
+        if (autoFitTimerRef.current) {
+          clearTimeout(autoFitTimerRef.current);
+        }
+        autoFitTimerRef.current = window.setTimeout(() => {
+          autoFitDrawing();
+          autoFitTimerRef.current = null;
+        }, 220);
+      } else {
+        // Sync raw pixels on end of stroke if auto-fit is disabled
+        syncProcessedPixels();
+      }
     };
+
+    useEffect(() => {
+      return () => {
+        if (autoFitTimerRef.current) {
+          clearTimeout(autoFitTimerRef.current);
+        }
+      };
+    }, []);
 
     return (
       <div className="flex flex-col gap-2 p-3 bg-slate-900/90 rounded-xl border border-slate-800 shadow-md">
@@ -432,19 +478,22 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
               <span className="hidden md:inline text-[9px] font-mono font-bold text-cyan-400/80">E</span>
             </button>
 
-            <div className="w-px h-3 bg-slate-800 mx-0.5" />
-
-            {/* Auto-Fit / Normalize Button */}
-            <button
-              type="button"
-              data-testid="btn-autofit"
-              onClick={autoFitDrawing}
-              className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-cyan-300 hover:bg-slate-900 transition-all cursor-pointer active:scale-95"
-              title="Auto-Fit / Normalize Drawing to Standard Size (Press F)"
-            >
-              <Maximize2 size={12} />
-              <span className="hidden md:inline text-[9px] font-mono font-bold text-cyan-400/80">F</span>
-            </button>
+            {/* Auto-Fit / Normalize Button: Only visible when autoFitOnDraw is DISABLED */}
+            {!autoFitOnDraw && (
+              <>
+                <div className="w-px h-3 bg-slate-800 mx-0.5" />
+                <button
+                  type="button"
+                  data-testid="btn-autofit"
+                  onClick={autoFitDrawing}
+                  className="flex items-center gap-1 px-1.5 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-cyan-300 hover:bg-slate-900 transition-all cursor-pointer active:scale-95"
+                  title="Auto-Fit / Normalize Drawing to Standard Size (Press F)"
+                >
+                  <Maximize2 size={12} />
+                  <span className="hidden md:inline text-[9px] font-mono font-bold text-cyan-400/80">F</span>
+                </button>
+              </>
+            )}
 
             {/* Clear / Delete Button */}
             <button
@@ -486,17 +535,17 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
           )}
         </div>
 
-        {/* Footer: ParameterSlider from @elsesourav/react-ui */}
+        {/* Footer: ParameterSlider from @elsesourav/react-ui (Strict Range: 15px to 30px) */}
         <div className="pt-1.5 border-t border-slate-800/60">
           <ParameterSlider
             label="Stroke Width"
             value={brushSize}
             onChange={(val) => handleBrushSizeChange(val)}
             min={15}
-            max={40}
+            max={30}
             step={1}
             unit="px"
-            ticks={9}
+            ticks={7}
             className="w-full bg-slate-950/80 border-slate-800 hover:border-slate-700"
           />
         </div>

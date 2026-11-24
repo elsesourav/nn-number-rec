@@ -1,5 +1,6 @@
 import React from 'react';
-import { Play, Pause, StepForward, Zap, CheckCircle2, Globe, ChevronLeft, ChevronRight, Shuffle } from 'lucide-react';
+import { Play, Pause, StepForward, Globe, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { Button, ParameterSlider } from '@elsesourav/react-ui';
 import type { PredictionResult } from '../../types';
 
 interface TrainingPanelProps {
@@ -19,6 +20,7 @@ interface TrainingPanelProps {
   currentSampleInfo?: { id: number; label: number } | null;
   onPrevSample?: () => void;
   onNextSample?: () => void;
+  onResetToFirst?: () => void;
   showTrainingControls?: boolean;
   showNumpad?: boolean;
   disabled?: boolean;
@@ -41,16 +43,15 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   currentSampleInfo = null,
   onPrevSample,
   onNextSample,
+  onResetToFirst,
   showTrainingControls = true,
   showNumpad = true,
   disabled = false,
 }) => {
   const predictedDigit = prediction?.digit ?? null;
-  const isLoop = targetSamples === Infinity;
-  const remaining = isLoop ? '∞' : Math.max(0, targetSamples - batchTrained);
-  const progressPct = isLoop
-    ? Math.min(100, ((batchTrained % Math.max(1, totalOnlineSamples)) / Math.max(1, totalOnlineSamples)) * 100)
-    : Math.min(100, (batchTrained / targetSamples) * 100);
+  const effectiveTarget = Math.min(targetSamples, totalOnlineSamples);
+  const remaining = Math.max(0, effectiveTarget - batchTrained);
+  const progressPct = Math.min(100, (batchTrained / Math.max(1, effectiveTarget)) * 100);
 
   return (
     <div className="flex flex-col gap-2 p-2.5 sm:p-3 bg-slate-900/90 rounded-xl border border-slate-800 shadow-md">
@@ -60,61 +61,57 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
           <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
             <div className="flex items-center gap-1.5">
               {/* Live Train Play / Pause Button */}
-              <button
-                type="button"
+              <Button
+                size="sm"
+                variant={isLiveTraining ? 'danger' : 'primary'}
                 data-testid="btn-toggle-live-train"
                 onClick={onToggleLiveTraining}
                 disabled={disabled}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-sm ${
+                leftIcon={
+                  isLiveTraining ? (
+                    <Pause size={12} className="fill-current shrink-0" />
+                  ) : (
+                    <Play size={12} className="fill-current shrink-0" />
+                  )
+                }
+                className={`h-8 px-3 text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.5 cursor-pointer ${
                   isLiveTraining
-                    ? 'bg-rose-500/25 text-rose-300 border border-rose-500/50 hover:bg-rose-500/35 animate-pulse'
-                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                    ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-xs animate-pulse'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs'
                 }`}
                 title="Auto Train Animation (Space)"
               >
-                {isLiveTraining ? (
-                  <>
-                    <Pause size={12} className="fill-rose-300" />
-                    <span>Pause</span>
-                  </>
-                ) : (
-                  <>
-                    <Play size={12} className="fill-emerald-300" />
-                    <span>Live Train</span>
-                  </>
-                )}
-              </button>
+                <span>{isLiveTraining ? 'Pause' : 'Live Train'}</span>
+              </Button>
 
               {/* Single Step Button */}
-              <button
-                type="button"
+              <Button
+                size="sm"
+                variant="outline"
                 data-testid="btn-step-train"
                 onClick={onStepTraining}
                 disabled={disabled || isLiveTraining}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-950 border border-slate-800 hover:text-white hover:bg-slate-800 disabled:opacity-40 transition-all cursor-pointer"
+                leftIcon={<StepForward size={12} className="shrink-0" />}
+                className="h-8 px-2.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-950 border-slate-800 hover:bg-slate-800 inline-flex items-center gap-1.5 whitespace-nowrap [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.5 cursor-pointer"
                 title="Train 1 Image Step"
               >
-                <StepForward size={12} />
                 <span>Step</span>
-              </button>
+              </Button>
             </div>
 
-            {/* Speed Slider */}
-            <div className="flex items-center gap-1.5 flex-1 max-w-[110px] justify-end">
-              <Zap size={11} className="text-amber-400 flex-shrink-0" />
-              <input
-                type="range"
+            {/* Speed ParameterSlider */}
+            <div className="flex-1 max-w-[145px]">
+              <ParameterSlider
+                label="Speed"
+                value={trainSpeed}
+                onChange={onChangeSpeed}
                 min={1}
                 max={20}
                 step={1}
-                value={trainSpeed}
-                onChange={(e) => onChangeSpeed(Number(e.target.value))}
-                className="w-14 h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-amber-400"
-                title={`Training Speed: ${trainSpeed}x`}
+                unit="x"
+                ticks={5}
+                className="h-8 text-xs bg-slate-950 border-slate-800"
               />
-              <span className="text-[10px] font-mono text-amber-300 w-5 text-right font-medium">
-                {trainSpeed}x
-              </span>
             </div>
           </div>
 
@@ -149,10 +146,11 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                   {onPrevSample && (
                     <button
                       type="button"
+                      data-testid="btn-prev-sample"
                       onClick={onPrevSample}
                       disabled={isLiveTraining}
-                      className="w-4 h-4 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer disabled:opacity-30 border border-slate-800"
-                      title="Previous Online Image"
+                      className="w-4.5 h-4.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer disabled:opacity-30 border border-slate-800"
+                      title="Previous Online Image & Train"
                     >
                       <ChevronLeft size={10} />
                     </button>
@@ -160,12 +158,25 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                   {onNextSample && (
                     <button
                       type="button"
+                      data-testid="btn-next-sample"
                       onClick={onNextSample}
                       disabled={isLiveTraining}
-                      className="w-4 h-4 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer disabled:opacity-30 border border-slate-800"
-                      title="Next Online Image"
+                      className="w-4.5 h-4.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer disabled:opacity-30 border border-slate-800"
+                      title="Next Online Image & Train"
                     >
                       <ChevronRight size={10} />
+                    </button>
+                  )}
+                  {onResetToFirst && (
+                    <button
+                      type="button"
+                      data-testid="btn-reset-sample"
+                      onClick={onResetToFirst}
+                      disabled={isLiveTraining}
+                      className="w-4.5 h-4.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-cyan-300 flex items-center justify-center cursor-pointer disabled:opacity-30 border border-slate-800"
+                      title="Reset to First Image (#1)"
+                    >
+                      <RotateCcw size={9} />
                     </button>
                   )}
                 </div>
@@ -177,45 +188,40 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
               <div className="flex items-center gap-1">
                 <span className="text-emerald-400 font-bold">{batchTrained}</span>
                 <span className="text-slate-600">/</span>
-                <span className="text-slate-300">{isLoop ? '∞' : targetSamples}</span>
+                <span className="text-slate-300">{effectiveTarget}</span>
               </div>
               <span className="text-[10px] text-cyan-400 font-medium">
-                {isLoop
-                  ? `Epoch ${Math.floor(batchTrained / Math.max(1, totalOnlineSamples)) + 1}`
-                  : `${remaining} left`}
+                {remaining === 0 ? 'Target Reached' : `${remaining} left`}
               </span>
             </div>
 
             {/* Progress Bar */}
             <div className="w-full h-1 bg-slate-800/80 rounded-full overflow-hidden">
               <div
-                className={`h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-150 rounded-full ${
-                  isLoop ? 'animate-pulse' : ''
-                }`}
+                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-150 rounded-full"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
 
-            {/* Target Presets: Clean 6-Column Segmented Row */}
-            <div className="grid grid-cols-6 gap-1 pt-0.5">
+            {/* Target Presets: Strictly based on available presets, maximum is All, NO infinite */}
+            <div className="grid grid-cols-5 gap-1 pt-0.5">
               {[
+                { val: 50, label: '50' },
                 { val: 100, label: '100' },
+                { val: 250, label: '250' },
                 { val: 500, label: '500' },
-                { val: 1000, label: '1k' },
-                { val: 2500, label: '2.5k' },
-                { val: 5000, label: '5k' },
-                { val: Infinity, label: '∞' },
+                { val: totalOnlineSamples, label: `All (${totalOnlineSamples})` },
               ].map(({ val, label }) => (
                 <button
                   key={label}
                   type="button"
                   onClick={() => onChangeTargetSamples?.(val)}
                   className={`py-0.5 text-center rounded font-mono text-[9px] border transition-all cursor-pointer ${
-                    targetSamples === val
+                    effectiveTarget === val
                       ? 'bg-cyan-500/25 text-cyan-300 border-cyan-500/50 font-bold shadow-sm shadow-cyan-500/20'
                       : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700'
                   }`}
-                  title={`Target: ${label === '∞' ? 'Continuous Infinite Loop' : val} samples`}
+                  title={`Target: ${val} samples`}
                 >
                   {label}
                 </button>
@@ -225,66 +231,61 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         </>
       )}
 
-      {/* 3. Big Clean Numpad with Live Percentage on Every Button (0-9) */}
+      {/* 3. The 10 Section: Sleek 10-Class Probability Bars (0-9) - Replaces bulky numpad */}
       {showNumpad && (
-        <div className="grid grid-cols-5 gap-1.5">
-        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => {
-          const prob = prediction?.probabilities[digit] ?? 0;
-          const pct = Math.round(prob * 100);
-          const isWinner = prediction !== null && digit === predictedDigit && pct > 0;
-          const hasPrediction = prediction !== null;
+        <div
+          data-testid="ten-probability-section"
+          className="bg-slate-950/90 rounded-xl border border-slate-800/90 p-2 shadow-inner flex flex-col gap-1"
+        >
+          <div className="grid grid-cols-10 gap-1 sm:gap-1.5 items-end h-16 pt-1">
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => {
+              const prob = prediction?.probabilities[digit] ?? 0;
+              const pct = Math.round(prob * 100);
+              const isWinner = prediction !== null && digit === predictedDigit && pct > 0;
 
-          return (
-            <button
-              key={digit}
-              type="button"
-              data-testid={`btn-train-digit-${digit}`}
-              disabled={disabled}
-              onClick={() => onTrainDigit(digit)}
-              className={`relative overflow-hidden flex flex-col items-center justify-center h-12 rounded-xl font-mono transition-all cursor-pointer active:scale-95 border ${
-                isWinner
-                  ? 'bg-emerald-950/60 border-emerald-500 shadow-md shadow-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
-                  : 'bg-slate-950/90 border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white'
-              }`}
-              title={`Train digit ${digit} (Key: ${digit})`}
-            >
-              {/* Subtle Probability Fill from Bottom */}
-              {pct > 0 && (
-                <div
-                  style={{ height: `${pct}%` }}
-                  className={`absolute inset-x-0 bottom-0 pointer-events-none transition-all duration-150 ${
-                    isWinner ? 'bg-emerald-500/25' : 'bg-cyan-500/10'
-                  }`}
-                />
-              )}
-
-              {/* Big Digit Number */}
-              <span
-                className={`text-lg sm:text-xl font-bold leading-none z-10 ${
-                  isWinner ? 'text-emerald-300' : 'text-slate-100'
-                }`}
-              >
-                {digit}
-              </span>
-
-              {/* Percentage Probability (Clean & visible when active, no messy dashes when idle) */}
-              {hasPrediction && (
-                <span
-                  className={`text-[9px] font-mono font-medium leading-none z-10 mt-1 ${
+              return (
+                <button
+                  key={digit}
+                  type="button"
+                  data-testid={`btn-train-digit-${digit}`}
+                  disabled={disabled}
+                  onClick={() => onTrainDigit(digit)}
+                  className={`group relative flex flex-col items-center justify-end h-full w-full rounded-lg transition-all cursor-pointer p-0.5 active:scale-95 select-none ${
                     isWinner
-                      ? 'text-emerald-400 font-bold'
-                      : pct > 5
-                      ? 'text-cyan-400/90'
-                      : 'text-slate-500/60'
+                      ? 'bg-emerald-950/40 ring-1 ring-emerald-500/50'
+                      : 'hover:bg-slate-900/60'
                   }`}
+                  title={`Digit ${digit}: ${pct}% (Click to train or press ${digit})`}
                 >
-                  {pct}%
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+                  {/* Vertical Probability Bar Container */}
+                  <div className="relative w-full flex-1 max-h-10 bg-slate-900/90 rounded-t-md rounded-b-xs overflow-hidden flex flex-col justify-end border border-slate-800/60 group-hover:border-slate-700">
+                    <div
+                      style={{ height: `${pct}%` }}
+                      className={`w-full transition-all duration-150 rounded-t-xs ${
+                        isWinner
+                          ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]'
+                          : pct > 0
+                          ? 'bg-cyan-600/70'
+                          : 'bg-transparent'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Digit Label */}
+                  <span
+                    className={`mt-1 text-xs sm:text-sm font-mono transition-colors ${
+                      isWinner
+                        ? 'text-emerald-400 font-bold drop-shadow-[0_0_6px_rgba(52,211,153,0.8)]'
+                        : 'text-slate-400 group-hover:text-slate-200'
+                    }`}
+                  >
+                    {digit}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );
