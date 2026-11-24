@@ -573,11 +573,7 @@ export default function App() {
                   </span>
                 </div>
               ) : (
-                <div className="pointer-events-auto flex items-center gap-1.5 text-[10px] font-mono text-emerald-300 bg-emerald-950/70 backdrop-blur-xs px-2 sm:px-2.5 py-1 rounded-lg border border-emerald-800/60 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="font-semibold uppercase tracking-wider hidden sm:inline">Math &amp; Pipeline Preview</span>
-                  <span className="font-semibold uppercase tracking-wider sm:hidden">Preview</span>
-                </div>
+                <div />
               )}
 
               {/* Right Side: Tab Switcher (Graph vs Mechanism) */}

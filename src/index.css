@@ -27,3 +27,17 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
+
+/* n8n Flow Animation */
+@keyframes flowDash {
+  from {
+    stroke-dashoffset: 200;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-flow-dash {
+  animation: flowDash 1.2s linear infinite;
+}
