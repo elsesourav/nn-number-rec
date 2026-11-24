@@ -28,6 +28,7 @@ train-labels-idx1-ubyte.gz
 # Editor & OS files
 .vscode
 .DS_Store
+screenshots/
 *.suo
 *.ntvs*
 *.njsproj

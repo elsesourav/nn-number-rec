@@ -27,15 +27,23 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
       if (numLayers < 2) return;
 
       // Dynamic margins scaled to width & height
-      const marginX = Math.max(40, width * 0.08);
-      const marginYTop = Math.max(38, height * 0.08);
-      const marginYBottom = Math.max(68, height * 0.14);
+      const marginX = Math.max(32, width * 0.08);
+      const marginYTop = Math.max(28, Math.min(40, height * 0.09));
+      const marginYBottom = Math.max(50, Math.min(64, height * 0.15));
       const layerSpacing = (width - 2 * marginX) / (numLayers - 1);
       const maxNodesPerLayer = Math.min(26, Math.floor((height - marginYTop - marginYBottom) / 14));
 
       // Helper to sample indices for dense layers (with intelligent active input pixel sampling)
       const getLayerVisualIndices = (layerIdx: number) => {
         const total = bridge.getLayerSize(layerIdx);
+
+        // Output layer ALWAYS displays all classes (all 10 digits 0–9) without truncation!
+        if (layerIdx === numLayers - 1) {
+          const indices: number[] = [];
+          for (let i = 0; i < total; i++) indices.push(i);
+          return { indices, hasHidden: false, total, limit: total };
+        }
+
         const limit = layerIdx === 0 ? Math.min(22, maxNodesPerLayer) : Math.min(18, maxNodesPerLayer);
 
         if (total <= limit) {
@@ -195,10 +203,10 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
         const isOutputLayer = l === numLayers - 1;
         const isInputLayer = l === 0;
 
-        // Compact node sizes for hidden layers, clear size for output
+        // Compact node sizes for hidden layers, dynamically scaled for output to never overlap
         const radius = isOutputLayer
-          ? Math.min(18, Math.max(13, availableH / 26))
-          : Math.min(6.5, Math.max(3.2, availableH / (vis.limit * 3.5)));
+          ? Math.min(16, Math.max(8.5, availableH / 24))
+          : Math.min(6.5, Math.max(3.0, availableH / (vis.limit * 3.5)));
 
         // Determine if wave has reached, is at, or has passed this layer
         // Layer l active emission starts at l / numTransitions
@@ -298,8 +306,9 @@ export const NetworkVisualizer: React.FC<NetworkVisualizerProps> = ({
               ? '#ffffff'
               : '#94a3b8';
 
+            const nodeFontSize = Math.max(8.5, Math.min(13, Math.round(radius * 0.95)));
             ctx.fillStyle = digitColor;
-            ctx.font = `bold ${Math.max(13, Math.round(radius * 0.95))}px monospace`;
+            ctx.font = `bold ${nodeFontSize}px monospace`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(i.toString(), x, y);

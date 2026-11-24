@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Sliders, Database, X, Check } from 'lucide-react';
+import { Sliders, Database, X, Check, PenTool, Zap, Sparkles } from 'lucide-react';
+import { Button, Badge } from '@elsesourav/react-ui';
 import { useWasmModule } from './hooks/useWasmModule';
 import { useNeuralNetwork } from './hooks/useNeuralNetwork';
 import {
@@ -33,16 +34,17 @@ export default function App() {
     importModel,
     loadPretrained,
     resetWeights,
-    resetStats,
     namedPresets,
     saveNamedPreset,
     loadNamedPreset,
     deleteNamedPreset,
-    setBiasEnabled,
   } = useNeuralNetwork(wasmModule);
 
   // Drawing Canvas Ref for programmatic digit drawing (Live Training)
   const drawingRef = useRef<DrawingCanvasHandle | null>(null);
+
+  // Mode Switcher: 'recognize' (pure test/predict) vs 'train' (training studio)
+  const [viewMode, setViewMode] = useState<'recognize' | 'train'>('recognize');
 
   // Floating Side Drawer State ('architecture' | 'storage' | null)
   const [drawerTab, setDrawerTab] = useState<'architecture' | 'storage' | null>(null);
@@ -64,7 +66,7 @@ export default function App() {
 
   // Live Auto-Training Engine State
   const [isLiveTraining, setIsLiveTraining] = useState<boolean>(false);
-  const [trainSpeed, setTrainSpeed] = useState<number>(1); // Defaults to 1x for complete animation demo
+  const [trainSpeed, setTrainSpeed] = useState<number>(1);
   const currentTrainDigitRef = useRef<number>(0);
   const liveTrainTimerRef = useRef<number | null>(null);
 
@@ -96,36 +98,32 @@ export default function App() {
       train(currentPixels, digit);
       setBatchTrained((prev) => {
         const next = prev + 1;
-        if (next >= targetSamples) {
+        if (targetSamples !== Infinity && next >= targetSamples) {
           setIsLiveTraining(false);
-          showToast(`Dataset complete: ${next}/${targetSamples} samples trained!`);
+          showToast(`Target reached: ${targetSamples}/${targetSamples} trained!`);
+          return targetSamples;
         }
         return next;
       });
+      showToast(`Trained on digit ${digit}`);
     },
     [train, currentPixels, targetSamples]
   );
 
-  // Single Step Live Training (uses real online MNIST image one by one!)
+  // Execute 1 complete step of dataset training
   const runTrainingStep = useCallback(
-    (animDuration = 700) => {
+    (animDuration = 0) => {
       if (!bridge || !drawingRef.current) return;
-      if (targetSamples !== Infinity && batchTrained >= targetSamples) {
-        setIsLiveTraining(false);
-        return;
-      }
 
-      let pixels: Float32Array;
       let label: number;
+      let pixels: Float32Array;
 
       if (datasetSource === 'online' && onlineSamples.length > 0) {
-        // Take real MNIST sample from online dataset one by one
-        const idx = mnistIndexRef.current;
-        mnistIndexRef.current = (idx + 1) % onlineSamples.length;
-
-        const sample = onlineSamples[idx];
+        const sampleIdx = mnistIndexRef.current % onlineSamples.length;
+        mnistIndexRef.current = (mnistIndexRef.current + 1) % onlineSamples.length;
+        const sample = onlineSamples[sampleIdx];
         label = sample.label;
-        setCurrentSampleInfo({ id: idx, label });
+        setCurrentSampleInfo({ id: sampleIdx, label });
 
         // Draw authentic online digit on canvas & downsample to active architecture
         pixels = drawingRef.current.drawMnistSample(sample.pixels);
@@ -151,7 +149,7 @@ export default function App() {
         return next;
       });
     },
-    [bridge, train, targetSamples, batchTrained, datasetSource, onlineSamples]
+    [bridge, train, targetSamples, datasetSource, onlineSamples]
   );
 
   // Preview an online sample on canvas without training
@@ -192,7 +190,7 @@ export default function App() {
   const handleToggleLiveTraining = () => {
     setIsLiveTraining((prev) => {
       if (!prev && targetSamples !== Infinity && batchTrained >= targetSamples) {
-        setBatchTrained(0); // Reset progress on new batch run
+        setBatchTrained(0);
       }
       return !prev;
     });
@@ -220,28 +218,24 @@ export default function App() {
       return;
     }
 
-    // Determine interval and animation mode based on trainSpeed
     let delayMs: number;
     let animDuration: number;
 
     if (trainSpeed === 1) {
-      // Speed 1: Full complete train animation from input to output, then pause before next sample
-      animDuration = 750;
-      delayMs = 1050; // 750ms full wave from input to output + 300ms inspection pause
+      animDuration = 700;
+      delayMs = 1000;
     } else if (trainSpeed === 2) {
-      animDuration = 450;
-      delayMs = 600;
+      animDuration = 400;
+      delayMs = 550;
     } else if (trainSpeed === 3) {
-      animDuration = 300;
-      delayMs = 400;
+      animDuration = 260;
+      delayMs = 380;
     } else if (trainSpeed <= 6) {
-      animDuration = 160;
-      delayMs = Math.round(750 / trainSpeed);
+      animDuration = 140;
+      delayMs = Math.round(700 / trainSpeed);
     } else {
-      // Fast mode (trainSpeed >= 7):
-      // "in between not show any animation just versy fast move"
-      animDuration = 0; // No multi-frame pulse wave! Direct rapid state update!
-      delayMs = Math.max(12, Math.round(250 / trainSpeed));
+      animDuration = 0;
+      delayMs = Math.max(12, Math.round(240 / trainSpeed));
     }
 
     const scheduleNext = () => {
@@ -260,10 +254,9 @@ export default function App() {
     };
   }, [isLiveTraining, trainSpeed, runTrainingStep]);
 
-  // Global Keyboard Shortcuts (B=Brush, E=Eraser, C=Clear, 0-9=Train, Space=Live Train)
+  // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing inside text fields
       if (e.target instanceof HTMLElement) {
         const tagName = e.target.tagName.toLowerCase();
         const isTextInput =
@@ -273,17 +266,18 @@ export default function App() {
         if (isTextInput) return;
       }
 
-      // Do not trigger on browser hotkeys (Cmd+C, Ctrl+C, etc.)
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-      // Spacebar: toggle live training
       if (e.code === 'Space') {
         e.preventDefault();
-        setIsLiveTraining((prev) => !prev);
+        if (viewMode === 'train') {
+          setIsLiveTraining((prev) => !prev);
+        } else {
+          drawingRef.current?.clear();
+        }
         return;
       }
 
-      // Brush (B), Eraser (E), Clear (C), Auto-Fit (F)
       const keyLower = e.key.toLowerCase();
       if (e.code === 'KeyB' || keyLower === 'b') {
         e.preventDefault();
@@ -306,7 +300,6 @@ export default function App() {
         return;
       }
 
-      // Digits 0-9 (top row or numpad)
       let digit: number | null = null;
       if (e.key >= '0' && e.key <= '9') {
         digit = parseInt(e.key, 10);
@@ -326,9 +319,8 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleTrainDigit]);
+  }, [handleTrainDigit, viewMode]);
 
-  // Calculate total parameters for floating badge
   const calculateTotalParams = () => {
     let total = 0;
     const fullTopology = [
@@ -343,148 +335,244 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col md:flex-row p-2 sm:p-2.5 gap-2 sm:gap-2.5 selection:bg-cyan-500/30 selection:text-cyan-300">
-      {/* Toast Notification (Floating Top Center) */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-300">
+      {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-3 py-1.5 rounded-full bg-slate-900/90 backdrop-blur-md border border-emerald-500/50 shadow-2xl flex items-center gap-1.5 text-xs text-emerald-300 font-medium animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 rounded-full bg-slate-900/90 backdrop-blur-md border border-emerald-500/50 shadow-2xl flex items-center gap-1.5 text-xs text-emerald-300 font-medium animate-in fade-in slide-in-from-top-2 duration-150">
           <Check size={12} className="text-emerald-400" />
           <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* LEFT PANEL: Compact Drawing Pad + Big Numpad with Live Training */}
-      <div className="w-full md:w-[300px] lg:w-[320px] flex-shrink-0 flex flex-col gap-2 h-auto md:h-full overflow-y-auto pr-0.5">
-        <DrawingCanvas
-          ref={drawingRef}
-          pixelResolution={config.pixelResolution}
-          onPixelDataChange={handlePixelDataChange}
-          onClear={() => {
-            setCurrentPixels(new Float32Array(config.inputSize));
-            predict(new Float32Array(config.inputSize), false);
-          }}
-          disabled={!bridge}
-        />
+      {/* Modern Responsive App Header (Clean & not locked to full screen) */}
+      <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 px-3 sm:px-6 py-2.5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          {/* Title & Tech Badges */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <h1 className="text-sm sm:text-base font-bold text-slate-100 tracking-tight whitespace-nowrap">
+              Neural Digit Recognizer
+            </h1>
+            <Badge variant="primary" size="sm" className="hidden sm:inline-flex text-[10px] font-mono">
+              SIMD128 C++ WASM
+            </Badge>
+          </div>
 
-        <TrainingPanel
-          prediction={prediction}
-          onTrainDigit={handleTrainDigit}
-          isLiveTraining={isLiveTraining}
-          onToggleLiveTraining={handleToggleLiveTraining}
-          onStepTraining={runTrainingStep}
-          trainSpeed={trainSpeed}
-          onChangeSpeed={setTrainSpeed}
-          batchTrained={batchTrained}
-          targetSamples={targetSamples}
-          onChangeTargetSamples={setTargetSamples}
-          datasetSource={datasetSource}
-          onToggleDatasetSource={handleToggleDatasetSource}
-          totalOnlineSamples={onlineSamples.length}
-          currentSampleInfo={currentSampleInfo}
-          onPrevSample={handlePrevSample}
-          onNextSample={handleNextSample}
-          disabled={!bridge}
-        />
-      </div>
+          {/* Mode Switcher: Recognize vs Train */}
+          <div className="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-xs shadow-inner">
+            <button
+              type="button"
+              data-testid="tab-recognize"
+              onClick={() => setViewMode('recognize')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                viewMode === 'recognize'
+                  ? 'bg-cyan-500/20 text-cyan-300 shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Recognize drawn digits in real-time"
+            >
+              <PenTool size={12} />
+              <span>Recognize</span>
+            </button>
+            <button
+              type="button"
+              data-testid="tab-train"
+              onClick={() => setViewMode('train')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                viewMode === 'train'
+                  ? 'bg-cyan-500/20 text-cyan-300 shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Train neural network with dataset"
+            >
+              <Zap size={12} />
+              <span>Train</span>
+            </button>
+          </div>
 
-      {/* RIGHT PANEL: Wide Full-Screen Live Neural Network Visualizer */}
-      <div className="flex-1 h-full min-w-0 min-h-[320px] relative flex flex-col rounded-2xl border border-slate-800/80 bg-slate-950/80 overflow-hidden shadow-2xl">
-        {/* Floating Top Control Dock (Anchored Top-Right over the Visualizer) */}
-        <div className="absolute top-2.5 right-2.5 z-30 flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/60 shadow-xl text-xs">
-          {/* Architecture Drawer Trigger */}
-          <button
-            type="button"
-            data-testid="btn-architecture"
-            onClick={() => setDrawerTab((prev) => (prev === 'architecture' ? null : 'architecture'))}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-              drawerTab === 'architecture'
-                ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/50 shadow-sm'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-            }`}
-            title="Configure Input Pixels and Hidden Layers"
-          >
-            <Sliders size={13} className="text-cyan-400 flex-shrink-0" />
-            <span className="hidden sm:inline">Architecture</span>
-            <span className="text-[10px] text-cyan-300 font-mono font-semibold px-1.5 py-0.2 rounded bg-cyan-950 border border-cyan-800/50">
-              {calculateTotalParams().toLocaleString()}
-            </span>
-          </button>
+          {/* Right Drawer Triggers */}
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="btn-architecture"
+              onClick={() => setDrawerTab((prev) => (prev === 'architecture' ? null : 'architecture'))}
+              className="text-xs h-7.5 px-2.5 text-slate-300 hover:text-white border-slate-800 bg-slate-900 cursor-pointer"
+              title="Configure Network Architecture"
+            >
+              <Sliders size={12} className="mr-1 text-cyan-400" />
+              <span className="hidden sm:inline">Architecture</span>
+              <span className="text-[10px] text-cyan-300 font-mono ml-1 px-1 py-0.2 rounded bg-cyan-950 border border-cyan-800/40">
+                {calculateTotalParams().toLocaleString()}
+              </span>
+            </Button>
 
-          {/* Storage Drawer Trigger */}
-          <button
-            type="button"
-            data-testid="btn-storage"
-            onClick={() => setDrawerTab((prev) => (prev === 'storage' ? null : 'storage'))}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
-              drawerTab === 'storage'
-                ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/50 shadow-sm'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-            }`}
-            title="Model Storage & JSON Export/Import"
-          >
-            <Database size={13} className="text-emerald-400 flex-shrink-0" />
-            <span className="hidden sm:inline">Storage</span>
-          </button>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="btn-storage"
+              onClick={() => setDrawerTab((prev) => (prev === 'storage' ? null : 'storage'))}
+              className="text-xs h-7.5 px-2.5 text-slate-300 hover:text-white border-slate-800 bg-slate-900 cursor-pointer"
+              title="Model Storage & Presets"
+            >
+              <Database size={12} className="mr-1 text-emerald-400" />
+              <span className="hidden sm:inline">Storage</span>
+            </Button>
+          </div>
+        </div>
+      </header>
 
-          {/* Engine Status Indicator */}
-          <div className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-mono text-emerald-400 border-l border-slate-800 pl-2">
-            {wasmLoading ? (
-              <span className="text-amber-400 animate-pulse">Loading...</span>
-            ) : wasmError ? (
-              <span className="text-rose-400">Error</span>
+      {/* Main Responsive Grid Layout (Natural Mobile Scrolling, Network on TOP on mobile) */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row gap-4 flex-1">
+          {/* LEFT/BOTTOM COLUMN: Controls & Drawing Section (Order-2 on mobile, Order-1 on desktop) */}
+          <div className="order-2 md:order-1 w-full md:w-[320px] lg:w-[340px] flex-shrink-0 flex flex-col gap-3">
+            {viewMode === 'recognize' ? (
+              <>
+                {/* 1. Pure Distraction-Free Drawing Pad */}
+                <DrawingCanvas
+                  ref={drawingRef}
+                  pixelResolution={config.pixelResolution}
+                  onPixelDataChange={handlePixelDataChange}
+                  onClear={() => {
+                    setCurrentPixels(new Float32Array(config.inputSize));
+                    predict(new Float32Array(config.inputSize), false);
+                  }}
+                  disabled={!bridge}
+                />
+
+                {/* 2. Interactive Numpad with Live Probabilities */}
+                <TrainingPanel
+                  prediction={prediction}
+                  onTrainDigit={handleTrainDigit}
+                  isLiveTraining={false}
+                  onToggleLiveTraining={() => {}}
+                  onStepTraining={() => {}}
+                  trainSpeed={trainSpeed}
+                  onChangeSpeed={setTrainSpeed}
+                  showTrainingControls={false}
+                  showNumpad={true}
+                  disabled={!bridge}
+                />
+
+                {/* 3. Clean Prediction Result Card */}
+                {prediction && prediction.digit !== null && (
+                  <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={14} className="text-emerald-400" />
+                      <span className="text-slate-300 font-medium">Predicted:</span>
+                      <span className="text-base font-bold text-emerald-400 font-mono">
+                        Digit {prediction.digit}
+                      </span>
+                    </div>
+                    <span className="text-cyan-300 font-mono text-[11px] font-semibold bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/50">
+                      {Math.round((prediction.probabilities[prediction.digit] ?? 0) * 100)}% Confidence
+                    </span>
+                  </div>
+                )}
+              </>
             ) : (
               <>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>SIMD128</span>
+                {/* 1. Training Studio Controls */}
+                <TrainingPanel
+                  prediction={prediction}
+                  onTrainDigit={handleTrainDigit}
+                  isLiveTraining={isLiveTraining}
+                  onToggleLiveTraining={handleToggleLiveTraining}
+                  onStepTraining={runTrainingStep}
+                  trainSpeed={trainSpeed}
+                  onChangeSpeed={setTrainSpeed}
+                  batchTrained={batchTrained}
+                  targetSamples={targetSamples}
+                  onChangeTargetSamples={setTargetSamples}
+                  datasetSource={datasetSource}
+                  onToggleDatasetSource={handleToggleDatasetSource}
+                  totalOnlineSamples={onlineSamples.length}
+                  currentSampleInfo={currentSampleInfo}
+                  onPrevSample={handlePrevSample}
+                  onNextSample={handleNextSample}
+                  showTrainingControls={true}
+                  showNumpad={false}
+                  disabled={!bridge}
+                />
+
+                {/* 2. Active Training Sample Preview on Canvas */}
+                <DrawingCanvas
+                  ref={drawingRef}
+                  pixelResolution={config.pixelResolution}
+                  onPixelDataChange={handlePixelDataChange}
+                  onClear={() => {
+                    setCurrentPixels(new Float32Array(config.inputSize));
+                    predict(new Float32Array(config.inputSize), false);
+                  }}
+                  disabled={!bridge}
+                />
+
+                {/* 3. Numpad Probabilities during Training */}
+                <TrainingPanel
+                  prediction={prediction}
+                  onTrainDigit={handleTrainDigit}
+                  isLiveTraining={isLiveTraining}
+                  onToggleLiveTraining={() => {}}
+                  onStepTraining={() => {}}
+                  trainSpeed={trainSpeed}
+                  onChangeSpeed={setTrainSpeed}
+                  showTrainingControls={false}
+                  showNumpad={true}
+                  disabled={!bridge}
+                />
               </>
             )}
           </div>
-        </div>
 
-        {/* Floating Top-Left Graph Legend */}
-        <div className="hidden md:flex absolute top-3 left-3 z-20 pointer-events-none items-center gap-3 text-[10px] font-mono text-slate-400 bg-slate-900/60 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-slate-800/50">
-          <span className="text-slate-300 font-semibold font-sans">Live Flow</span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-0.5 bg-emerald-400 rounded"></span> +Weight
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-0.5 bg-purple-400 rounded"></span> -Weight
-          </span>
-        </div>
+          {/* RIGHT/TOP COLUMN: Neural Network Visualizer (Order-1 on mobile, Order-2 on desktop) */}
+          <div className="order-1 md:order-2 flex-1 min-w-0 h-[320px] sm:h-[380px] md:h-auto md:min-h-[500px] relative flex flex-col rounded-2xl border border-slate-800/80 bg-slate-950/80 overflow-hidden shadow-xl">
+            {/* Legend & Mode Status */}
+            <div className="absolute top-2.5 left-3 z-20 pointer-events-none flex items-center gap-3 text-[10px] font-mono text-slate-400 bg-slate-900/70 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-slate-800/60">
+              <span className="text-slate-300 font-semibold font-sans">Active Flow</span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-0.5 bg-emerald-400 rounded"></span> +Weight
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-0.5 bg-purple-400 rounded"></span> -Weight
+              </span>
+            </div>
 
-        {/* The Wide Canvas Visualizer (Expands to Full Width & Height!) */}
-        <div className="flex-1 w-full h-full relative">
-          <NetworkVisualizer
-            bridge={bridge}
-            animating={isAnimating}
-            animationDuration={animationDuration}
-            activeDigit={prediction?.digit ?? null}
-          />
-        </div>
+            {/* Neural Network Canvas */}
+            <div className="flex-1 w-full h-full relative">
+              <NetworkVisualizer
+                bridge={bridge}
+                animating={isAnimating}
+                animationDuration={animationDuration}
+                activeDigit={prediction?.digit ?? null}
+              />
+            </div>
 
-        {/* Floating Bottom Bar: Live Topology, Hyperparameters & Single Loss Source */}
-        <div className="absolute bottom-1.5 left-3 right-3 z-20 pointer-events-none flex items-center justify-between text-[10px] font-mono text-slate-500 bg-slate-950/70 backdrop-blur-xs px-2.5 py-0.5 rounded border border-slate-900/60 shadow-sm">
-          <span className="truncate mr-2">
-            Topology: [{config.inputSize}, {config.hiddenLayers.map((l) => l.neurons).join(', ')}, {config.outputSize}]
-          </span>
-          <span className="flex-shrink-0">
-            {config.hiddenActivation} • LR: {config.learningRate.toFixed(2)} • Mom: {config.momentum.toFixed(2)} • Bias: {config.useBias ? 'ON' : 'OFF'} • Loss:{' '}
-            <span className="text-emerald-400 font-semibold">{trainingStats.currentLoss.toFixed(4)}</span>
-            <span className="text-slate-500"> ({trainingStats.samplesTrained})</span>
-          </span>
+            {/* Bottom Status Bar */}
+            <div className="absolute bottom-1.5 left-3 right-3 z-20 pointer-events-none flex items-center justify-between text-[10px] font-mono text-slate-500 bg-slate-950/80 backdrop-blur-xs px-2.5 py-0.5 rounded border border-slate-900 shadow-sm">
+              <span className="truncate mr-2">
+                Topology: [{config.inputSize}, {config.hiddenLayers.map((l) => l.neurons).join(', ')}, {config.outputSize}]
+              </span>
+              <span className="flex-shrink-0">
+                {config.hiddenActivation} • LR: {config.learningRate.toFixed(2)} • Mom: {config.momentum.toFixed(2)} • Loss:{' '}
+                <span className="text-emerald-400 font-semibold">{trainingStats.currentLoss.toFixed(4)}</span>
+                <span className="text-slate-500"> ({trainingStats.samplesTrained})</span>
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
 
-      {/* SLIDE-OVER SIDE DRAWER / FLOATING MODAL WINDOW */}
+      {/* SLIDE-OVER SIDE DRAWER: Opens from the LEFT with reduced blur */}
       {drawerTab !== null && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
-          {/* Backdrop for closing when clicking anywhere outside */}
+        <div className="fixed inset-0 z-50 overflow-hidden flex justify-start">
+          {/* Subtle Backdrop with less blur */}
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
             onClick={() => setDrawerTab(null)}
           />
 
-          {/* Sliding Panel */}
-          <div className="relative w-full sm:max-w-[390px] h-full bg-slate-900/98 backdrop-blur-2xl border-l border-slate-700/80 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200">
+          {/* Sliding Panel from the Left */}
+          <div className="relative w-full sm:max-w-[400px] h-full bg-slate-900 border-r border-slate-700/80 shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
             {/* Drawer Top Navigation & Close Button */}
             <div className="flex items-center justify-between p-2.5 border-b border-slate-800 bg-slate-950/80">
               <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-xs">
@@ -596,7 +684,7 @@ export default function App() {
                     }}
                     onLoadNamedPreset={(id) => {
                       const ok = loadNamedPreset(id);
-                      if (ok) showToast('Preset loaded successfully!');
+                      showToast('Preset loaded successfully!');
                       return ok;
                     }}
                     onDeleteNamedPreset={(id) => {

@@ -7,7 +7,7 @@ import React, {
   forwardRef,
 } from 'react';
 import { PenTool, Eraser, Trash2, Sparkles, Maximize2 } from 'lucide-react';
-import { Button } from '@elsesourav/react-ui';
+import { ParameterSlider, Button } from '@elsesourav/react-ui';
 import { processCanvasToInput } from '../../utils/imageProcessing';
 import { renderSyntheticDigit } from '../../utils/digitDataset';
 import { renderMnistImageToCanvas, adjustMnistStrokeWidth } from '../../utils/onlineDataset';
@@ -486,21 +486,19 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
           )}
         </div>
 
-        {/* Clean Footer: Compact Stroke Slider (15px to 40px) */}
-        <div className="flex items-center justify-between gap-2.5 text-xs pt-1 border-t border-slate-800/60">
-          <span className="text-slate-400 text-[10px] font-medium flex-shrink-0">Stroke:</span>
-          <input
-            type="range"
+        {/* Footer: ParameterSlider from @elsesourav/react-ui */}
+        <div className="pt-1.5 border-t border-slate-800/60">
+          <ParameterSlider
+            label="Stroke Width"
+            value={brushSize}
+            onChange={(val) => handleBrushSizeChange(val)}
             min={15}
             max={40}
-            value={brushSize}
-            onChange={(e) => handleBrushSizeChange(Number(e.target.value))}
-            className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-400"
-            title={`Stroke Size: ${brushSize}px`}
+            step={1}
+            unit="px"
+            ticks={9}
+            className="w-full bg-slate-950/80 border-slate-800 hover:border-slate-700"
           />
-          <span className="font-mono text-slate-400 text-[10px] w-7 text-right flex-shrink-0">
-            {brushSize}px
-          </span>
         </div>
       </div>
     );
