@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@elsesourav/react-ui/style.css" layer(components);
+@import "katex/dist/katex.min.css";
 @source "../index.html";
 @source "../src/**/*.{js,ts,jsx,tsx}";
 

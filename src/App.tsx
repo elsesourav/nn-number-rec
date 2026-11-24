@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Sliders, Database, X, PenTool, Zap, Sparkles } from 'lucide-react';
+import { Sliders, Database, X, PenTool, Zap, Sparkles, Network, Sigma } from 'lucide-react';
 import { Button, Badge, Dialog, useToast } from '@elsesourav/react-ui';
 import { useWasmModule } from './hooks/useWasmModule';
 import { useNeuralNetwork } from './hooks/useNeuralNetwork';
@@ -9,6 +9,7 @@ import {
 } from './components/DrawingCanvas/DrawingCanvas';
 import { NetworkConfigurator } from './components/NetworkConfig/NetworkConfigurator';
 import { NetworkVisualizer } from './components/Visualization/NetworkVisualizer';
+import { MechanismVisualizer } from './components/Visualization/MechanismVisualizer';
 import { TrainingPanel } from './components/Training/TrainingPanel';
 import { ModelManager } from './components/ModelManager/ModelManager';
 import { loadOnlineMnistDataset, type MnistSample } from './utils/onlineDataset';
@@ -45,6 +46,9 @@ export default function App() {
 
   // Mode Switcher: 'recognize' (pure test/predict) vs 'train' (training studio)
   const [viewMode, setViewMode] = useState<'recognize' | 'train'>('recognize');
+
+  // Visualizer View Mode: 'graph' (interactive node & synapse canvas) vs 'mechanism' (step-by-step mathematical & pipeline walkthrough)
+  const [visualizerMode, setVisualizerMode] = useState<'graph' | 'mechanism'>('graph');
 
   // Floating Side Drawer State ('architecture' | 'storage' | null)
   const [drawerTab, setDrawerTab] = useState<'architecture' | 'storage' | null>(null);
@@ -549,43 +553,100 @@ export default function App() {
           </div>
 
           {/* RIGHT/TOP COLUMN: Neural Network Visualizer (Order-1 on mobile, Order-2 on desktop) */}
-          <div className="order-1 md:order-2 flex-1 min-w-0 h-[320px] sm:h-[380px] md:h-auto md:min-h-[500px] relative flex flex-col rounded-2xl border border-slate-800/80 bg-slate-950/80 overflow-hidden shadow-xl">
-            {/* Legend & Mode Status */}
-            <div className="absolute top-2.5 left-3 z-20 pointer-events-none flex items-center gap-3 text-[10px] font-mono text-slate-300 bg-slate-900/80 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-slate-800/80 shadow-sm">
-              <span className="flex items-center gap-1.5 font-semibold text-slate-200 font-sans">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Active Flow
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-400">
-                <span className="w-3.5 h-1 bg-emerald-400 rounded-full shadow-[0_0_6px_rgba(52,211,153,0.8)]"></span>
-                <span className="text-emerald-300 font-medium">+Weight</span>
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-400">
-                <span className="w-3.5 h-1 bg-fuchsia-400 rounded-full shadow-[0_0_6px_rgba(232,121,249,0.8)]"></span>
-                <span className="text-fuchsia-300 font-medium">-Weight</span>
-              </span>
+          <div className="order-1 md:order-2 flex-1 min-w-0 h-[380px] sm:h-[440px] md:h-auto md:min-h-[540px] relative flex flex-col rounded-2xl border border-slate-800/80 bg-slate-950/80 overflow-hidden shadow-xl">
+            {/* Top Bar: Left Legend / Mode Badge, Right Mode Switcher (Graph vs Mechanism) */}
+            <div className="absolute top-2.5 left-3 right-3 z-30 flex items-center justify-between pointer-events-none gap-2">
+              {/* Left Side */}
+              {visualizerMode === 'graph' ? (
+                <div className="pointer-events-auto flex items-center gap-2 sm:gap-3 text-[10px] font-mono text-slate-300 bg-slate-900/85 backdrop-blur-xs px-2 sm:px-2.5 py-1 rounded-lg border border-slate-800/80 shadow-sm">
+                  <span className="flex items-center gap-1.5 font-semibold text-slate-200 font-sans">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Active Flow
+                  </span>
+                  <span className="hidden sm:flex items-center gap-1.5 text-slate-400">
+                    <span className="w-3.5 h-1 bg-emerald-400 rounded-full shadow-[0_0_6px_rgba(52,211,153,0.8)]"></span>
+                    <span className="text-emerald-300 font-medium">+Weight</span>
+                  </span>
+                  <span className="hidden sm:flex items-center gap-1.5 text-slate-400">
+                    <span className="w-3.5 h-1 bg-fuchsia-400 rounded-full shadow-[0_0_6px_rgba(232,121,249,0.8)]"></span>
+                    <span className="text-fuchsia-300 font-medium">-Weight</span>
+                  </span>
+                </div>
+              ) : (
+                <div className="pointer-events-auto flex items-center gap-1.5 text-[10px] font-mono text-emerald-300 bg-emerald-950/70 backdrop-blur-xs px-2 sm:px-2.5 py-1 rounded-lg border border-emerald-800/60 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="font-semibold uppercase tracking-wider hidden sm:inline">Math &amp; Pipeline Preview</span>
+                  <span className="font-semibold uppercase tracking-wider sm:hidden">Preview</span>
+                </div>
+              )}
+
+              {/* Right Side: Tab Switcher (Graph vs Mechanism) */}
+              <div className="pointer-events-auto flex items-center bg-slate-900/90 backdrop-blur-xs p-0.5 rounded-lg border border-slate-800/80 shadow-md">
+                <button
+                  type="button"
+                  data-testid="tab-visualizer-graph"
+                  onClick={() => setVisualizerMode('graph')}
+                  className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    visualizerMode === 'graph'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Interactive Node & Synapse Graph"
+                >
+                  <Network size={12} className="shrink-0" />
+                  <span className="font-mono">Graph</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="tab-visualizer-mechanism"
+                  onClick={() => setVisualizerMode('mechanism')}
+                  className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    visualizerMode === 'mechanism'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Step-by-Step Mathematical Mechanism & Functions Preview"
+                >
+                  <Sigma size={12} className="shrink-0" />
+                  <span className="font-mono">Mechanism</span>
+                </button>
+              </div>
             </div>
 
-            {/* Neural Network Canvas */}
+            {/* Visualizer Canvas or Mechanism Walkthrough */}
             <div className="flex-1 w-full h-full relative">
-              <NetworkVisualizer
-                bridge={bridge}
-                animating={isAnimating}
-                animationDuration={animationDuration}
-                activeDigit={prediction?.digit ?? null}
-              />
-            </div>
+              {visualizerMode === 'graph' ? (
+                <>
+                  <NetworkVisualizer
+                    bridge={bridge}
+                    animating={isAnimating}
+                    animationDuration={animationDuration}
+                    activeDigit={prediction?.digit ?? null}
+                  />
 
-            {/* Bottom Status Bar */}
-            <div className="absolute bottom-1.5 left-3 right-3 z-20 pointer-events-none flex items-center justify-between text-[10px] font-mono text-slate-500 bg-slate-950/80 backdrop-blur-xs px-2.5 py-0.5 rounded border border-slate-900 shadow-sm">
-              <span className="truncate mr-2">
-                Topology: [{config.inputSize}, {config.hiddenLayers.map((l) => l.neurons).join(', ')}, {config.outputSize}]
-              </span>
-              <span className="flex-shrink-0">
-                {config.hiddenActivation} • LR: {config.learningRate.toFixed(2)} • Mom: {config.momentum.toFixed(2)} • Loss:{' '}
-                <span className="text-emerald-400 font-semibold">{trainingStats.currentLoss.toFixed(4)}</span>
-                <span className="text-slate-500"> ({trainingStats.samplesTrained})</span>
-              </span>
+                  {/* Bottom Status Bar */}
+                  <div className="absolute bottom-1.5 left-3 right-3 z-20 pointer-events-none flex items-center justify-between text-[10px] font-mono text-slate-500 bg-slate-950/80 backdrop-blur-xs px-2.5 py-0.5 rounded border border-slate-900 shadow-sm">
+                    <span className="truncate mr-2">
+                      Topology: [{config.inputSize}, {config.hiddenLayers.map((l) => l.neurons).join(', ')}, {config.outputSize}]
+                    </span>
+                    <span className="flex-shrink-0">
+                      {config.hiddenActivation} • LR: {config.learningRate.toFixed(2)} • Mom: {config.momentum.toFixed(2)} • Loss:{' '}
+                      <span className="text-emerald-400 font-semibold">{trainingStats.currentLoss.toFixed(4)}</span>
+                      <span className="text-slate-500"> ({trainingStats.samplesTrained})</span>
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <MechanismVisualizer
+                  config={config}
+                  currentPixels={currentPixels}
+                  prediction={prediction}
+                  trainingStats={trainingStats}
+                  currentSampleInfo={currentSampleInfo}
+                  isTraining={isLiveTraining}
+                  bridge={bridge}
+                />
+              )}
             </div>
           </div>
         </div>
